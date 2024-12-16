@@ -26,6 +26,8 @@ pub trait Client {
     fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>>;
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
+    /// The channel where the simulation controller can send messages
+    fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType);
 

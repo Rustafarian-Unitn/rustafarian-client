@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{client::Client, message::{
-    ChatRequest, ChatResponse,
+    ChatRequest, ChatResponse, Message,
 }, topology::Topology};
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::packet::{Fragment, Packet, PacketType};
@@ -11,7 +11,8 @@ pub struct ChatClient {
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
     received_fragment:HashMap<u64, Vec<Fragment>>,
-    topology: Topology
+    topology: Topology,
+    sim_controller_receiver: Receiver<Message<ChatResponse>>,
 }
 
 impl ChatClient {
@@ -19,13 +20,15 @@ impl ChatClient {
         client_id: u8,
         senders: HashMap<u8, Sender<Packet>>,
         receiver: Receiver<Packet>,
+        sim_controller_receiver: Receiver<Message<ChatResponse>>
     ) -> Self {
         ChatClient {
             client_id,
             senders,
             receiver,
             received_fragment: HashMap::new(),
-            topology: Topology::new()
+            topology: Topology::new(),
+            sim_controller_receiver,
         }
     }
 
@@ -79,6 +82,10 @@ impl Client for ChatClient {
                 println!("Message sent");
             }
         }
+    }
+    
+    fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>> {
+        &self.sim_controller_receiver
     }
 
 }
