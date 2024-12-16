@@ -8,7 +8,7 @@ use crossbeam::select;
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{
     network::*,
-    packet::{FloodRequest, Fragment, Packet, PacketType},
+    packet::{FloodRequest, FloodResponse, Fragment, Packet, PacketType},
 };
 pub const FRAGMENT_DSIZE: usize = 128;
 
@@ -36,13 +36,28 @@ pub trait Client {
         })
     }
 
-    fn on_response_arrived(&mut self, source_id: NodeId, session_id: u64, raw_content: String) {
+    fn on_text_response_arrived(&mut self, source_id: NodeId, session_id: u64, raw_content: String) {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
                 let response = self.handle_response(message.content);
                 // TODO: send ACK
             }
             Err(str) => panic!("{}", str),
+        }
+    }
+
+    fn on_flood_response(&mut self, flood_response: FloodResponse) {
+        println!(
+            "Client {} received FloodResponse: {:?}",
+            self.client_id(), flood_response
+        );
+        self.topology().clear();
+        for (i, node) in flood_response.path_trace.iter().enumerate() {
+            self.topology().add_node(node.0);
+            if i > 0 {
+                self.topology().add_edge(flood_response.path_trace[i - 1].0, node.0);
+                self.topology().add_edge(node.0, flood_response.path_trace[i - 1].0);
+            }
         }
     }
 
@@ -56,14 +71,11 @@ pub trait Client {
                                 PacketType::MsgFragment(fragment) => {
                                     if let Some(message) = self.add_fragment(fragment, packet.session_id) {
                                         let message_str = String::from_utf8_lossy(&message);
-                                        self.on_response_arrived(0, packet.session_id, message_str.to_string());
+                                        self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
                                     }
                                 }
                                 PacketType::FloodResponse(flood_response) => {
-                                    println!(
-                                        "Client {} received FloodResponse: {:?}",
-                                        self.client_id(), flood_response
-                                    );
+                                    self.on_flood_response(flood_response);
                                 }
                                 _ => {
                                     println!("Client {} received an unsupported packet type", self.client_id());

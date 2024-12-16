@@ -33,6 +33,19 @@ impl Topology {
             .map(|&x| x)
             .collect()
     }
+
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.edges.clear();
+    }
+
+    pub fn nodes(&self) -> &Vec<NodeId> {
+        &self.nodes
+    }
+
+    pub fn edges(&self) -> &HashMap<NodeId, Vec<NodeId>> {
+        &self.edges
+    }
 }
 
 // BFS search

@@ -42,24 +42,16 @@ pub mod flooding {
         let mut neighbors = HashMap::new();
         neighbors.insert(1 as u8, neighbor.0);
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+
         let mut chat_client = ChatClient::new(1, neighbors, channel.1);
 
-        thread::spawn(move || {
-            chat_client.run();
+        chat_client.on_flood_response(FloodResponse {
+            flood_id: 1,
+            path_trace: [(1, NodeType::Drone), (2, NodeType::Drone), (21, NodeType::Server)].to_vec(),
         });
 
-        let packet = Packet {
-            pack_type: PacketType::FloodResponse(FloodResponse {
-                flood_id: 1,
-                path_trace: [(1, NodeType::Drone), (2, NodeType::Drone), (21, NodeType::Server)].to_vec(),
-            }),
-            routing_header: SourceRoutingHeader {
-                hop_index: 1,
-                hops: [21, 2, 1].to_vec()
-            },
-            session_id: rand::random()
-        };
-        
-        channel.0.send(packet).unwrap();
+        assert_eq!(chat_client.topology().nodes(), &vec![1, 2, 21], "Topology should contain nodes 1, 2, and 21");
+
+        // assert_eq!(chat_client.topology().edges(), &hash_map![(1, 2), (2, 21)], "Topology should contain edges (1, 2) and (2, 21)");
     }
 }
