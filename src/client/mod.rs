@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::message::{
+use crate::{message::{
     ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType,
     ServerTypeRequest, ServerTypeResponse,
-};
+}, routing::Topology};
 use crossbeam::select;
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{
@@ -20,6 +20,7 @@ pub trait Client {
     fn senders(&self) -> &HashMap<u8, Sender<Packet>>;
     fn receiver(&self) -> &Receiver<Packet>;
     fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>>;
+    fn topology(&mut self) -> &mut Topology;
 
     fn compose_message(
         &self,

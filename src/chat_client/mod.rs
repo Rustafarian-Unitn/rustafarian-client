@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{client::Client, message::{
     ChatRequest, ChatResponse,
-}};
+}, routing::Topology};
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::packet::{Fragment, Packet, PacketType};
 
@@ -10,7 +10,8 @@ pub struct ChatClient {
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
-    received_fragment:HashMap<u64, Vec<Fragment>>
+    received_fragment:HashMap<u64, Vec<Fragment>>,
+    topology: Topology
 }
 
 impl ChatClient {
@@ -23,7 +24,8 @@ impl ChatClient {
             client_id,
             senders,
             receiver,
-            received_fragment: HashMap::new()
+            received_fragment: HashMap::new(),
+            topology: Topology::new()
         }
     }
 
@@ -59,6 +61,10 @@ impl Client for ChatClient {
 
     fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>> {
         &mut self.received_fragment
+    }
+
+    fn topology(&mut self) -> &mut crate::routing::Topology {
+        &mut self.topology
     }
 
     fn handle_response(&mut self, response: Self::ResponseType) {
