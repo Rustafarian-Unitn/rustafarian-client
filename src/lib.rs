@@ -1,7 +1,7 @@
 pub mod chat_client;
 pub mod client;
 pub mod message;
-pub mod routing;
+pub mod topology;
 pub mod server;
 
 #[cfg(test)]

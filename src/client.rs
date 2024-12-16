@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{message::{
     ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType,
     ServerTypeRequest, ServerTypeResponse,
-}, routing::Topology};
+}, topology::Topology};
 use crossbeam::select;
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{
