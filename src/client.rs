@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{message::{
-    ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType,
-    ServerTypeRequest, ServerTypeResponse,
+    DroneSend, Message, Request, Response,
 }, topology::Topology};
 use crossbeam::select;
 use crossbeam_channel::{Receiver, Sender};
@@ -12,16 +11,25 @@ use wg_2024::{
 };
 pub const FRAGMENT_DSIZE: usize = 128;
 
+/// A trait for a client that can send and receive messages
 pub trait Client {
     type RequestType: Request;
     type ResponseType: Response;
 
+    /// Returns the client id
     fn client_id(&self) -> u8;
+    /// Returns the drones connected to the client
     fn senders(&self) -> &HashMap<u8, Sender<Packet>>;
+    /// The channel where the client can receive messages
     fn receiver(&self) -> &Receiver<Packet>;
+    /// The (temporary) fragments received by the client
     fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>>;
+    /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
+    /// Handle a response received from the server
+    fn handle_response(&mut self, response: Self::ResponseType);
 
+    /// Compose a message to send from a raw string
     fn compose_message(
         &self,
         source_id: NodeId,
@@ -36,6 +44,7 @@ pub trait Client {
         })
     }
 
+    /// Handle a text message re-composed from MsgFragments
     fn on_text_response_arrived(&mut self, source_id: NodeId, session_id: u64, raw_content: String) {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
@@ -46,6 +55,7 @@ pub trait Client {
         }
     }
 
+    /// Handle a FloodResponse
     fn on_flood_response(&mut self, flood_response: FloodResponse) {
         println!(
             "Client {} received FloodResponse: {:?}",
@@ -61,6 +71,7 @@ pub trait Client {
         }
     }
 
+    /// Run the client, listening for incoming messages
     fn run(&mut self) {
         loop {
             select! {
@@ -91,6 +102,7 @@ pub trait Client {
         }
     }
 
+    /// Add a fragment to the list of received fragments
     fn add_fragment(&mut self, fragment: Fragment, session_id: u64) -> Option<Vec<u8>> {
         let fragments = self
             .received_fragments()
@@ -107,6 +119,7 @@ pub trait Client {
         None
     }
 
+    /// Reassemble a message from fragments
     fn reassemble_message(&mut self, session_id: u64) -> Vec<u8> {
         if let Some(mut fragments) = self.received_fragments().remove(&session_id) {
             fragments.sort_by_key(|f| f.fragment_index);
@@ -120,6 +133,7 @@ pub trait Client {
         Vec::new()
     }
 
+    /// Deassemble a message into fragments
     fn deassemble_message(&mut self, message: Vec<u8>, session_id: u64) -> Vec<Fragment> {
         let mut fragments = Vec::<Fragment>::new();
         //ceil rounds the decimal number to the next whole number
@@ -148,8 +162,7 @@ pub trait Client {
         fragments
     }
 
-    fn handle_response(&mut self, response: Self::ResponseType);
-
+    /// Send a packet to a server
     fn send_packet(&mut self, client_id: u8, message: Packet) {
         match self.senders().get(&client_id) {
             Some(sender) => {
@@ -161,6 +174,7 @@ pub trait Client {
         }
     }
 
+    /// Send a text message to a server
     fn send_message(&mut self, client_id: u8, message: String) {
         let session_id = rand::random();
         let fragments = self.deassemble_message(message.as_bytes().to_vec(), session_id);
@@ -177,6 +191,7 @@ pub trait Client {
         }
     }
 
+    /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
         for (client_id, sender) in self.senders() {
             let packet = Packet {
