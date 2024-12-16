@@ -4,7 +4,7 @@ use crate::{client::Client, message::{
     ChatRequest, ChatResponse,
 }};
 use crossbeam_channel::{Receiver, Sender};
-use wg_2024::packet::{Fragment, Packet};
+use wg_2024::packet::{Fragment, Packet, PacketType};
 
 pub struct ChatClient {
     client_id: u8,
@@ -25,6 +25,19 @@ impl ChatClient {
             receiver,
             received_fragment: HashMap::new()
         }
+    }
+
+    pub fn register(&mut self) -> () {
+        let request = ChatRequest::Register(self.client_id);
+        let request_json = serde_json::to_string(&request).unwrap();
+        let fragments = self.deassemble_message(request_json.as_bytes().to_vec(), 0);
+        // TODO
+        todo!();
+    }
+    
+    pub fn get_client_list(&self) -> () {
+        // TODO
+        todo!()
     }
 }
 
