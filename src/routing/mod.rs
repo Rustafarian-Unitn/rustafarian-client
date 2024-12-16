@@ -35,6 +35,7 @@ impl Topology {
     }
 }
 
+// BFS search
 pub fn compute_route(topology: &Topology, source_id: NodeId, destination_id: NodeId) -> Vec<NodeId> {
     let mut route = Vec::new();
     let mut visited = HashSet::new();
