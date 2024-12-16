@@ -14,4 +14,4 @@ rand = { version = "0.8" }
 
 [[bin]]
 name = "rustafarian_client"
-path = "src/chat_client.rs"
+path = "src/bin/chat_exec.rs"

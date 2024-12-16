@@ -4,4 +4,7 @@ pub mod routing;
 pub mod client;
 pub mod chat_client;
 
-mod tests;
+#[cfg(test)]
+mod tests {
+    mod routing_test;
+}
