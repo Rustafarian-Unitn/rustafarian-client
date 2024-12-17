@@ -48,7 +48,7 @@ pub trait Client {
         })
     }
 
-    /// Handle a text message re-composed from MsgFragments
+    /// Handle a complete text message re-composed from MsgFragments
     fn on_text_response_arrived(&mut self, source_id: NodeId, session_id: u64, raw_content: String) {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
@@ -75,32 +75,37 @@ pub trait Client {
         }
     }
 
+    /// Handle a packet received from a drone
+    fn handle_drone_packets(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
+        match packet {
+            Ok(packet) => {
+                match packet.pack_type {
+                    PacketType::MsgFragment(fragment) => {
+                        if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
+                            let message_str = String::from_utf8_lossy(&message);
+                            self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
+                        }
+                    }
+                    PacketType::FloodResponse(flood_response) => {
+                        self.on_flood_response(flood_response);
+                    }
+                    _ => {
+                        println!("Client {} received an unsupported packet type", self.client_id());
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("Client {}: Error receiving packet: {:?}", self.client_id(), err);
+            }
+        }
+    }
+
     /// Run the client, listening for incoming messages
     fn run(&mut self) {
         loop {
             select! {
                 recv(self.receiver()) -> packet => {
-                    match packet {
-                        Ok(packet) => {
-                            match packet.pack_type {
-                                PacketType::MsgFragment(fragment) => {
-                                    if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
-                                        let message_str = String::from_utf8_lossy(&message);
-                                        self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
-                                    }
-                                }
-                                PacketType::FloodResponse(flood_response) => {
-                                    self.on_flood_response(flood_response);
-                                }
-                                _ => {
-                                    println!("Client {} received an unsupported packet type", self.client_id());
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            eprintln!("Client {}: Error receiving packet: {:?}", self.client_id(), err);
-                        }
-                    }
+                    self.handle_drone_packets(packet);
                 }
             }
         }
