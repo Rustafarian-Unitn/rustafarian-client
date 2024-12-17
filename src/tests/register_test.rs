@@ -46,4 +46,5 @@ pub mod register_test {
 
         assert_eq!(reassembled_message.unwrap(), register_serialized.as_bytes().to_vec());
     }
+
 }

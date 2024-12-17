@@ -82,6 +82,7 @@ impl Client for ChatClient {
         match response {
             ChatResponse::ClientList(client_list) => {
                 println!("Client list: {:?}", client_list);
+                self.available_clients = client_list;
             }
             ChatResponse::MessageFrom { from, message } => {
                 println!("Message from {}: {:?}", from, message);

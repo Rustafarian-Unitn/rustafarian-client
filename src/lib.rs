@@ -11,4 +11,5 @@ mod tests {
     mod flooding_test;
     mod send_message_test;
     mod register_test;
+    mod list_test;
 }
