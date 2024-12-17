@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 
 use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, client::Client, message::{
-    ChatRequest, ChatResponse, Message,
+    ChatRequest, ChatResponse, Message, ServerType,
 }, topology::Topology};
 use crossbeam_channel::{Receiver, Sender};
-use wg_2024::packet::{Fragment, Packet, PacketType};
+use wg_2024::{network::NodeId, packet::{Fragment, Packet, PacketType}};
 
 pub struct ChatClient {
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
-    received_fragment:HashMap<u64, Vec<Fragment>>,
     topology: Topology,
     sim_controller_receiver: Receiver<Message<ChatResponse>>,
     sent_packets: HashMap<u64, Packet>,
+    available_clients: Vec<NodeId>,
     assembler: Assembler,
     deassembler: Deassembler
 }
@@ -29,26 +29,32 @@ impl ChatClient {
             client_id,
             senders,
             receiver,
-            received_fragment: HashMap::new(),
             topology: Topology::new(),
             sim_controller_receiver,
             sent_packets: HashMap::new(),
+            available_clients: Vec::new(),
             assembler: Assembler::new(),
             deassembler: Deassembler::new()
         }
     }
 
-    pub fn register(&mut self) -> () {
+    /// Send a 'register' message to a server
+    pub fn register(&mut self, server_id: NodeId) -> () {
         let request = ChatRequest::Register(self.client_id);
         let request_json = serde_json::to_string(&request).unwrap();
         let fragments = self.deassembler.add_message(request_json.as_bytes().to_vec(), 0);
-        // TODO
-        todo!();
+        let session_id = rand::random();
+        let routing_header = self.topology.get_routing_header(self.client_id(), server_id);
+        let first_hop_id = routing_header.current_hop().unwrap();
+        for fragment in fragments {
+            let packet = Packet::new_fragment(routing_header.clone(), session_id, fragment);
+            self.senders.get_mut(&first_hop_id).unwrap().send(packet).unwrap();
+        }
     }
     
-    pub fn get_client_list(&self) -> () {
-        // TODO
-        todo!()
+    /// Get the list of available clients in the chat server
+    pub fn get_client_list(&mut self) -> &mut Vec<NodeId> {
+        &mut self.available_clients
     }
 }
 

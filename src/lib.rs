@@ -9,4 +9,5 @@ pub mod assembler;
 mod tests {
     mod routing_test;
     mod flooding;
+    mod send_message;
 }

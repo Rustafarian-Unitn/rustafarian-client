@@ -1,6 +1,6 @@
 use std::{borrow::BorrowMut, collections::{HashMap, HashSet, VecDeque}};
 
-use wg_2024::network::NodeId;
+use wg_2024::network::{NodeId, SourceRoutingHeader};
 
 /// A simple graph representation of the network topology
 pub struct Topology {
@@ -53,6 +53,13 @@ impl Topology {
     /// Get the edges of the topology
     pub fn edges(&self) -> &HashMap<NodeId, Vec<NodeId>> {
         &self.edges
+    }
+    
+    pub(crate) fn get_routing_header(&self, client_id: NodeId, server_id: NodeId) -> wg_2024::network::SourceRoutingHeader {
+        let mut header = SourceRoutingHeader::empty_route();
+        header.hops = compute_route(self, client_id, server_id);
+        header.hop_index = 1;
+        header
     }
 }
 
