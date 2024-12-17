@@ -25,8 +25,21 @@ impl Topology {
 
     /// Add a new edge between two nodes
     pub fn add_edge(&mut self, from: NodeId, to: NodeId) {
-        self.edges.get_mut(&from).unwrap().push(to);
-        self.edges.get_mut(&to).unwrap().push(from);
+        match self.edges.get_mut(&from) {
+            Some(x) => {
+                x.push(to);
+            },
+            None => {
+                self.edges.insert(from, vec![to]);
+            }
+        }
+        
+        match self.edges.get_mut(&to) {
+            Some(x) => x.push(from),
+            None => {
+                self.edges.insert(to, vec![from]);
+            }
+        }
     }
 
     /// Get the neighbors of a node

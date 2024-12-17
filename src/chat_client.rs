@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, client::Client, message::{
+use crate::{assembler::{self, assembler::Assembler, disassembler::Disassembler}, client::Client, message::{
     ChatRequest, ChatResponse, Message, ServerType,
 }, topology::Topology};
 use crossbeam_channel::{Receiver, Sender};
@@ -15,7 +15,7 @@ pub struct ChatClient {
     sent_packets: HashMap<u64, Packet>,
     available_clients: Vec<NodeId>,
     assembler: Assembler,
-    deassembler: Deassembler
+    deassembler: Disassembler
 }
 
 impl ChatClient {
@@ -34,7 +34,7 @@ impl ChatClient {
             sent_packets: HashMap::new(),
             available_clients: Vec::new(),
             assembler: Assembler::new(),
-            deassembler: Deassembler::new()
+            deassembler: Disassembler::new()
         }
     }
 
@@ -42,7 +42,7 @@ impl ChatClient {
     pub fn register(&mut self, server_id: NodeId) -> () {
         let request = ChatRequest::Register(self.client_id);
         let request_json = serde_json::to_string(&request).unwrap();
-        let fragments = self.deassembler.add_message(request_json.as_bytes().to_vec(), 0);
+        let fragments = self.deassembler.disassemble_message(request_json.as_bytes().to_vec(), 0);
         let session_id = rand::random();
         let routing_header = self.topology.get_routing_header(self.client_id(), server_id);
         let first_hop_id = routing_header.current_hop().unwrap();
@@ -100,7 +100,7 @@ impl Client for ChatClient {
         &mut self.assembler
     }
     
-    fn deassembler(&mut self) -> &mut crate::assembler::deassembler::Deassembler {
+    fn deassembler(&mut self) -> &mut crate::assembler::disassembler::Disassembler {
         &mut self.deassembler
     }
     

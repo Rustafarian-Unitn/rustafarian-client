@@ -8,6 +8,7 @@ pub mod assembler;
 #[cfg(test)]
 mod tests {
     mod routing_test;
-    mod flooding;
-    mod send_message;
+    mod flooding_test;
+    mod send_message_test;
+    mod register_test;
 }

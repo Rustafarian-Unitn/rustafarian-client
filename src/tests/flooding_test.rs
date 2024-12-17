@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod flooding {
+pub mod flooding_test {
     use std::{collections::HashMap, thread};
 
     use crossbeam_channel::{unbounded, Receiver, Sender};

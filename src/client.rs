@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, message::{
+use crate::{assembler::{self, assembler::Assembler, disassembler::Disassembler}, message::{
     DroneSend, Message, Request, Response,
 }, topology::{self, Topology}};
 use crossbeam::select;
@@ -25,7 +25,7 @@ pub trait Client {
     /// The assembler used to reassemble messages
     fn assembler(&mut self) -> &mut Assembler;
     /// The deassembler used to fragment messages
-    fn deassembler(&mut self) -> &mut Deassembler;
+    fn deassembler(&mut self) -> &mut Disassembler;
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
     /// The channel where the simulation controller can send messages
@@ -133,7 +133,7 @@ pub trait Client {
     /// Send a text message to a server
     fn send_message(&mut self, destination_id: u8, message: String) {
         let session_id = rand::random();
-        let fragments = self.deassembler().add_message(message.as_bytes().to_vec(), session_id);
+        let fragments = self.deassembler().disassemble_message(message.as_bytes().to_vec(), session_id);
         let client_id = self.client_id();
         // Send all the fragments to the server
         for fragment in fragments {

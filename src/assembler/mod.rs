@@ -1,2 +1,2 @@
 pub mod assembler;
-pub mod deassembler;
+pub mod disassembler;

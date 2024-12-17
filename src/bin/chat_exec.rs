@@ -24,7 +24,7 @@ fn main() {
         if input == 1 {
             chat_client.send_flood_request();
         } else if input == 2 {
-            chat_client.register();
+            chat_client.register(21);
         } else if input == 3 {
             chat_client.get_client_list();
         } else if input == 4 {
