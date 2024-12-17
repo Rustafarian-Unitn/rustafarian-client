@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, message::{
     DroneSend, Message, Request, Response,
-}, topology::Topology};
+}, topology::{self, Topology}};
 use crossbeam::select;
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{
@@ -117,22 +117,24 @@ pub trait Client {
     }
 
     /// Send a packet to a server
-    fn send_packet(&mut self, client_id: u8, message: Packet) {
+    fn send_packet(&mut self, message: Packet) {
         self.sent_packets().insert(message.session_id, message.clone());
-        match self.senders().get(&client_id) {
+        let drone_id = message.routing_header.hops[1];
+        match self.senders().get(&drone_id) {
             Some(sender) => {
                 sender.send(message).unwrap();
             }
             None => {
-                eprintln!("Client {}: No sender found for client {}", self.client_id(), client_id);
+                eprintln!("Client {}: No sender found for client {}", self.client_id(), drone_id);
             }
         }
     }
 
     /// Send a text message to a server
-    fn send_message(&mut self, client_id: u8, message: String) {
+    fn send_message(&mut self, destination_id: u8, message: String) {
         let session_id = rand::random();
         let fragments = self.deassembler().add_message(message.as_bytes().to_vec(), session_id);
+        let client_id = self.client_id();
         // Send all the fragments to the server
         for fragment in fragments {
             let packet = Packet {
@@ -140,10 +142,10 @@ pub trait Client {
                 session_id,
                 routing_header: SourceRoutingHeader {
                     hop_index: 1,
-                    hops: Vec::new()
+                    hops: topology::compute_route(&self.topology(), client_id, destination_id)
                 }
             };
-            self.send_packet(client_id, packet);
+            self.send_packet(packet);
         }
     }
 
