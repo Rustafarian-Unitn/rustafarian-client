@@ -13,6 +13,7 @@ pub struct ChatClient {
     received_fragment:HashMap<u64, Vec<Fragment>>,
     topology: Topology,
     sim_controller_receiver: Receiver<Message<ChatResponse>>,
+    sent_packets: HashMap<u64, Packet>,
     assembler: Assembler,
     deassembler: Deassembler
 }
@@ -31,6 +32,7 @@ impl ChatClient {
             received_fragment: HashMap::new(),
             topology: Topology::new(),
             sim_controller_receiver,
+            sent_packets: HashMap::new(),
             assembler: Assembler::new(),
             deassembler: Deassembler::new()
         }
@@ -94,6 +96,10 @@ impl Client for ChatClient {
     
     fn deassembler(&mut self) -> &mut crate::assembler::deassembler::Deassembler {
         &mut self.deassembler
+    }
+    
+    fn sent_packets(&mut self) -> &mut HashMap<u64, Packet> {
+        &mut self.sent_packets
     }
 
 }

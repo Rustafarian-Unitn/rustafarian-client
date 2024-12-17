@@ -32,6 +32,8 @@ pub trait Client {
     fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType);
+    /// Contains all the packets sent by the client, in case they need to be sent again
+    fn sent_packets(&mut self) -> &mut HashMap<u64, Packet>;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -80,12 +82,15 @@ pub trait Client {
         match packet {
             Ok(packet) => {
                 match packet.pack_type {
+                    // Handle text fragment
                     PacketType::MsgFragment(fragment) => {
+                        // If the message is complete
                         if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
                             let message_str = String::from_utf8_lossy(&message);
                             self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
                         }
                     }
+                    // Handle flood response
                     PacketType::FloodResponse(flood_response) => {
                         self.on_flood_response(flood_response);
                     }
@@ -113,6 +118,7 @@ pub trait Client {
 
     /// Send a packet to a server
     fn send_packet(&mut self, client_id: u8, message: Packet) {
+        self.sent_packets().insert(message.session_id, message.clone());
         match self.senders().get(&client_id) {
             Some(sender) => {
                 sender.send(message).unwrap();
@@ -127,6 +133,7 @@ pub trait Client {
     fn send_message(&mut self, client_id: u8, message: String) {
         let session_id = rand::random();
         let fragments = self.deassembler().add_message(message.as_bytes().to_vec(), session_id);
+        // Send all the fragments to the server
         for fragment in fragments {
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),
