@@ -90,3 +90,13 @@ pub enum ServerType {
     Text,
     Media,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SimControllerCommand {
+    SendMessage(String, NodeId), // Send message to a server
+    Register(NodeId), // Register a client to a server
+    ClientList, // Get the list of available clients
+}
+
+impl DroneSend for SimControllerCommand {}
+impl Request for SimControllerCommand {}

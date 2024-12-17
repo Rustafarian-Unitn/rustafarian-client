@@ -8,7 +8,7 @@ use wg_2024::packet::Packet;
 
 fn main() {
     let mut channel: (Sender<Packet>, Receiver<Packet>) = crossbeam_channel::unbounded();
-    let mut chat_client = ChatClient::new(1, HashMap::new(), channel.1, unbounded().1);
+    let mut chat_client = ChatClient::new(1, HashMap::new(), channel.1, unbounded().1, unbounded().0);
     chat_client.run();
 
     loop {

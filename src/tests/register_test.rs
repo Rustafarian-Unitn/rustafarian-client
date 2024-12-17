@@ -15,7 +15,7 @@ pub mod register_test {
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
         let client_id = 1;
 
-        let mut chat_client = ChatClient::new(client_id, neighbors, channel.1, unbounded().1);
+        let mut chat_client = ChatClient::new(client_id, neighbors, channel.1, unbounded().1, unbounded().0);
 
         let register_request = ChatRequest::Register(client_id);
         let register_serialized = serde_json::to_string(&register_request).unwrap();

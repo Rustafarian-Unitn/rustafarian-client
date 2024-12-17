@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{assembler::{self, assembler::Assembler, disassembler::Disassembler}, message::{
     DroneSend, Message, Request, Response,
 }, topology::{self, Topology}};
 use crossbeam::select;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{select_biased, Receiver, Sender};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Fragment, Packet, PacketType},
@@ -29,7 +29,9 @@ pub trait Client {
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
     /// The channel where the simulation controller can send messages
-    fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>>;
+    fn sim_controller_receiver(&self) -> &Receiver<Packet>;
+    /// The channel where the simulation controller can receive messages
+    fn sim_controller_sender(&self) -> &Sender<Packet>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType);
     /// Contains all the packets sent by the client, in case they need to be sent again
@@ -104,11 +106,29 @@ pub trait Client {
             }
         }
     }
+    
+    fn handle_sim_controller_packets(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
+        match packet {
+            Ok(packet) => {
+                match packet.pack_type {
+                    _ => {
+                        println!("Client {}: Received a packet type from the simulation controller {:?}", self.client_id(), packet);
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("Client {}: Error receiving packet from the simulation controller: {:?}", self.client_id(), err);
+            }
+        };
+    }
 
     /// Run the client, listening for incoming messages
     fn run(&mut self) {
         loop {
-            select! {
+            select_biased! {
+                recv(self.sim_controller_receiver()) -> packet => {
+                    self.handle_sim_controller_packets(packet);
+                }
                 recv(self.receiver()) -> packet => {
                     self.handle_drone_packets(packet);
                 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{assembler::{self, assembler::Assembler, disassembler::Disassembler}, client::Client, message::{
-    ChatRequest, ChatResponse, Message, ServerType,
+    ChatRequest, ChatResponse, Message, ServerType, SimControllerCommand,
 }, topology::Topology};
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{network::NodeId, packet::{Fragment, Packet, PacketType}};
@@ -11,7 +11,8 @@ pub struct ChatClient {
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
     topology: Topology,
-    sim_controller_receiver: Receiver<Message<ChatResponse>>,
+    sim_controller_receiver: Receiver<Packet>,
+    sim_controller_sender: Sender<Packet>,
     sent_packets: HashMap<u64, Packet>,
     available_clients: Vec<NodeId>,
     assembler: Assembler,
@@ -23,7 +24,8 @@ impl ChatClient {
         client_id: u8,
         senders: HashMap<u8, Sender<Packet>>,
         receiver: Receiver<Packet>,
-        sim_controller_receiver: Receiver<Message<ChatResponse>>
+        sim_controller_receiver: Receiver<Packet>,
+        sim_controller_sender: Sender<Packet>,
     ) -> Self {
         ChatClient {
             client_id,
@@ -31,6 +33,7 @@ impl ChatClient {
             receiver,
             topology: Topology::new(),
             sim_controller_receiver,
+            sim_controller_sender,
             sent_packets: HashMap::new(),
             available_clients: Vec::new(),
             assembler: Assembler::new(),
@@ -93,7 +96,7 @@ impl Client for ChatClient {
         }
     }
     
-    fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>> {
+    fn sim_controller_receiver(&self) -> &Receiver<Packet> {
         &self.sim_controller_receiver
     }
     
@@ -107,6 +110,10 @@ impl Client for ChatClient {
     
     fn sent_packets(&mut self) -> &mut HashMap<u64, Packet> {
         &mut self.sent_packets
+    }
+    
+    fn sim_controller_sender(&self) -> &Sender<Packet> {
+        &self.sim_controller_sender
     }
 
 }

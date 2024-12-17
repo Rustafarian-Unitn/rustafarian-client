@@ -23,7 +23,7 @@ pub mod client_list_test {
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
         let client_id = 1;
 
-        let mut chat_client = ChatClient::new(client_id, neighbors, channel.1, unbounded().1);
+        let mut chat_client = ChatClient::new(client_id, neighbors, channel.1, unbounded().1, unbounded().0);
 
         let client_list_response = ChatResponse::ClientList([11, 12].to_vec());
 

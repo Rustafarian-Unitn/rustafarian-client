@@ -13,7 +13,7 @@ pub mod flooding_test {
         let mut neighbors = HashMap::new();
         neighbors.insert(1 as u8, neighbor.0);
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut chat_client = ChatClient::new(1, neighbors, channel.1, unbounded().1);
+        let mut chat_client = ChatClient::new(1, neighbors, channel.1, unbounded().1, unbounded().0);
 
         // thread::spawn(move || {
         //     chat_client.run();
@@ -43,7 +43,7 @@ pub mod flooding_test {
         neighbors.insert(1 as u8, neighbor.0);
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
 
-        let mut chat_client = ChatClient::new(1, neighbors, channel.1, unbounded().1);
+        let mut chat_client = ChatClient::new(1, neighbors, channel.1, unbounded().1, unbounded().0);
 
         chat_client.on_flood_response(FloodResponse {
             flood_id: 1,
