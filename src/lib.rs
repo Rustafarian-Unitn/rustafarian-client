@@ -3,6 +3,7 @@ pub mod client;
 pub mod message;
 pub mod topology;
 pub mod server;
+pub mod assembler;
 
 #[cfg(test)]
 mod tests {

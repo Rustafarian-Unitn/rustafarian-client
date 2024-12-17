@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{message::{
+use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, message::{
     DroneSend, Message, Request, Response,
 }, topology::Topology};
 use crossbeam::select;
@@ -22,8 +22,10 @@ pub trait Client {
     fn senders(&self) -> &HashMap<u8, Sender<Packet>>;
     /// The channel where the client can receive messages
     fn receiver(&self) -> &Receiver<Packet>;
-    /// The (temporary) fragments received by the client
-    fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>>;
+    /// The assembler used to reassemble messages
+    fn assembler(&mut self) -> &mut Assembler;
+    /// The deassembler used to fragment messages
+    fn deassembler(&mut self) -> &mut Deassembler;
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
     /// The channel where the simulation controller can send messages
@@ -82,7 +84,7 @@ pub trait Client {
                         Ok(packet) => {
                             match packet.pack_type {
                                 PacketType::MsgFragment(fragment) => {
-                                    if let Some(message) = self.add_fragment(fragment, packet.session_id) {
+                                    if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
                                         let message_str = String::from_utf8_lossy(&message);
                                         self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
                                     }
@@ -104,66 +106,6 @@ pub trait Client {
         }
     }
 
-    /// Add a fragment to the list of received fragments
-    fn add_fragment(&mut self, fragment: Fragment, session_id: u64) -> Option<Vec<u8>> {
-        let fragments = self
-            .received_fragments()
-            .entry(session_id)
-            .or_insert_with(Vec::new);
-
-        fragments.push(fragment);
-
-        if let Some(total_fragments) = fragments.first().map(|f| f.total_n_fragments) {
-            if fragments.len() == total_fragments as usize {
-                return Some(self.reassemble_message(session_id));
-            }
-        }
-        None
-    }
-
-    /// Reassemble a message from fragments
-    fn reassemble_message(&mut self, session_id: u64) -> Vec<u8> {
-        if let Some(mut fragments) = self.received_fragments().remove(&session_id) {
-            fragments.sort_by_key(|f| f.fragment_index);
-
-            let mut message = Vec::new();
-            for fragment in fragments {
-                message.extend_from_slice(&fragment.data[..fragment.length as usize]);
-            }
-            return message;
-        }
-        Vec::new()
-    }
-
-    /// Deassemble a message into fragments
-    fn deassemble_message(&mut self, message: Vec<u8>, session_id: u64) -> Vec<Fragment> {
-        let mut fragments = Vec::<Fragment>::new();
-        //ceil rounds the decimal number to the next whole number
-        let total_fragments = (message.len() as f64 / FRAGMENT_DSIZE as f64).ceil() as u64;
-
-        // Break the message into fragments (chunks) and iter over it
-        for (i, chunk) in message.chunks(FRAGMENT_DSIZE).enumerate() {
-            //divide the message in chunks
-            let mut data = [0u8; FRAGMENT_DSIZE];
-            let length = chunk.len() as u8; // chunk length
-
-            // copy chucnk into data
-            data[..length as usize].copy_from_slice(chunk);
-
-            // create fragment and add it to list
-            let fragment = Fragment {
-                fragment_index: i as u64,
-                total_n_fragments: total_fragments,
-                length,
-                data,
-            };
-
-            fragments.push(fragment);
-        }
-
-        fragments
-    }
-
     /// Send a packet to a server
     fn send_packet(&mut self, client_id: u8, message: Packet) {
         match self.senders().get(&client_id) {
@@ -179,7 +121,7 @@ pub trait Client {
     /// Send a text message to a server
     fn send_message(&mut self, client_id: u8, message: String) {
         let session_id = rand::random();
-        let fragments = self.deassemble_message(message.as_bytes().to_vec(), session_id);
+        let fragments = self.deassembler().add_message(message.as_bytes().to_vec(), session_id);
         for fragment in fragments {
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{client::Client, message::{
+use crate::{assembler::{self, assembler::Assembler, deassembler::Deassembler}, client::Client, message::{
     ChatRequest, ChatResponse, Message,
 }, topology::Topology};
 use crossbeam_channel::{Receiver, Sender};
@@ -13,6 +13,8 @@ pub struct ChatClient {
     received_fragment:HashMap<u64, Vec<Fragment>>,
     topology: Topology,
     sim_controller_receiver: Receiver<Message<ChatResponse>>,
+    assembler: Assembler,
+    deassembler: Deassembler
 }
 
 impl ChatClient {
@@ -29,13 +31,15 @@ impl ChatClient {
             received_fragment: HashMap::new(),
             topology: Topology::new(),
             sim_controller_receiver,
+            assembler: Assembler::new(),
+            deassembler: Deassembler::new()
         }
     }
 
     pub fn register(&mut self) -> () {
         let request = ChatRequest::Register(self.client_id);
         let request_json = serde_json::to_string(&request).unwrap();
-        let fragments = self.deassemble_message(request_json.as_bytes().to_vec(), 0);
+        let fragments = self.deassembler.add_message(request_json.as_bytes().to_vec(), 0);
         // TODO
         todo!();
     }
@@ -62,10 +66,6 @@ impl Client for ChatClient {
         &self.receiver
     }
 
-    fn received_fragments(&mut self) -> &mut HashMap<u64, Vec<Fragment>> {
-        &mut self.received_fragment
-    }
-
     fn topology(&mut self) -> &mut crate::topology::Topology {
         &mut self.topology
     }
@@ -86,6 +86,14 @@ impl Client for ChatClient {
     
     fn sim_controller_receiver(&self) -> &Receiver<Message<Self::ResponseType>> {
         &self.sim_controller_receiver
+    }
+    
+    fn assembler(&mut self) -> &mut crate::assembler::assembler::Assembler {
+        &mut self.assembler
+    }
+    
+    fn deassembler(&mut self) -> &mut crate::assembler::deassembler::Deassembler {
+        &mut self.deassembler
     }
 
 }
