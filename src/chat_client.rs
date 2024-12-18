@@ -40,6 +40,11 @@ impl ChatClient {
             deassembler: Disassembler::new()
         }
     }
+    
+    /// Get the list of available clients in the chat server
+    pub fn get_client_list(&mut self) -> &mut Vec<NodeId> {
+        &mut self.available_clients
+    }
 
     /// Send a 'register' message to a server
     pub fn register(&mut self, server_id: NodeId) -> () {
@@ -54,10 +59,12 @@ impl ChatClient {
             self.senders.get_mut(&first_hop_id).unwrap().send(packet).unwrap();
         }
     }
-    
-    /// Get the list of available clients in the chat server
-    pub fn get_client_list(&mut self) -> &mut Vec<NodeId> {
-        &mut self.available_clients
+
+    pub fn send_chat_message(&mut self, server_id: NodeId, message: String) {
+        let chat_message = ChatRequest::SendMessage { from: self.client_id, to: server_id, message };
+        let chat_message_json = serde_json::to_string(&chat_message).unwrap();
+
+        self.send_message(server_id, chat_message_json);
     }
 }
 
