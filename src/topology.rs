@@ -1,11 +1,14 @@
-use std::{borrow::BorrowMut, collections::{HashMap, HashSet, VecDeque}};
+use std::{
+    borrow::BorrowMut,
+    collections::{HashMap, HashSet, VecDeque},
+};
 
 use wg_2024::network::{NodeId, SourceRoutingHeader};
 
 /// A simple graph representation of the network topology
 pub struct Topology {
-    nodes: Vec<NodeId>, // The list of nodes in the topology
-    edges: HashMap<NodeId, Vec<NodeId>>, // All the connections between nodes. 
+    nodes: Vec<NodeId>,                  // The list of nodes in the topology
+    edges: HashMap<NodeId, Vec<NodeId>>, // All the connections between nodes.
 }
 
 impl Topology {
@@ -28,12 +31,12 @@ impl Topology {
         match self.edges.get_mut(&from) {
             Some(x) => {
                 x.push(to);
-            },
+            }
             None => {
                 self.edges.insert(from, vec![to]);
             }
         }
-        
+
         match self.edges.get_mut(&to) {
             Some(x) => x.push(from),
             None => {
@@ -67,8 +70,12 @@ impl Topology {
     pub fn edges(&self) -> &HashMap<NodeId, Vec<NodeId>> {
         &self.edges
     }
-    
-    pub(crate) fn get_routing_header(&self, client_id: NodeId, server_id: NodeId) -> wg_2024::network::SourceRoutingHeader {
+
+    pub(crate) fn get_routing_header(
+        &self,
+        client_id: NodeId,
+        server_id: NodeId,
+    ) -> wg_2024::network::SourceRoutingHeader {
         let mut header = SourceRoutingHeader::empty_route();
         header.hops = compute_route(self, client_id, server_id);
         header.hop_index = 1;
@@ -77,7 +84,11 @@ impl Topology {
 }
 
 // BFS search between a starting node and a destination
-pub fn compute_route(topology: &Topology, source_id: NodeId, destination_id: NodeId) -> Vec<NodeId> {
+pub fn compute_route(
+    topology: &Topology,
+    source_id: NodeId,
+    destination_id: NodeId,
+) -> Vec<NodeId> {
     let mut route = Vec::new();
     let mut visited = HashSet::new();
     let mut queue = VecDeque::new();

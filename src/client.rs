@@ -1,8 +1,10 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::{assembler::{self, assembler::Assembler, disassembler::Disassembler}, message::{
-    DroneSend, Message, Request, Response,
-}, topology::{self, Topology}};
+use crate::{
+    assembler::{self, assembler::Assembler, disassembler::Disassembler},
+    message::{DroneSend, Message, Request, Response},
+    topology::{self, Topology},
+};
 use crossbeam::select;
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use wg_2024::{
@@ -53,7 +55,12 @@ pub trait Client {
     }
 
     /// Handle a complete text message re-composed from MsgFragments
-    fn on_text_response_arrived(&mut self, source_id: NodeId, session_id: u64, raw_content: String) {
+    fn on_text_response_arrived(
+        &mut self,
+        source_id: NodeId,
+        session_id: u64,
+        raw_content: String,
+    ) {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
                 let response = self.handle_response(message.content);
@@ -67,14 +74,17 @@ pub trait Client {
     fn on_flood_response(&mut self, flood_response: FloodResponse) {
         println!(
             "Client {} received FloodResponse: {:?}",
-            self.client_id(), flood_response
+            self.client_id(),
+            flood_response
         );
         self.topology().clear();
         for (i, node) in flood_response.path_trace.iter().enumerate() {
             self.topology().add_node(node.0);
             if i > 0 {
-                self.topology().add_edge(flood_response.path_trace[i - 1].0, node.0);
-                self.topology().add_edge(node.0, flood_response.path_trace[i - 1].0);
+                self.topology()
+                    .add_edge(flood_response.path_trace[i - 1].0, node.0);
+                self.topology()
+                    .add_edge(node.0, flood_response.path_trace[i - 1].0);
             }
         }
     }
@@ -87,9 +97,15 @@ pub trait Client {
                     // Handle text fragment
                     PacketType::MsgFragment(fragment) => {
                         // If the message is complete
-                        if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
+                        if let Some(message) =
+                            self.assembler().add_fragment(fragment, packet.session_id)
+                        {
                             let message_str = String::from_utf8_lossy(&message);
-                            self.on_text_response_arrived(0, packet.session_id, message_str.to_string());
+                            self.on_text_response_arrived(
+                                0,
+                                packet.session_id,
+                                message_str.to_string(),
+                            );
                         }
                     }
                     // Handle flood response
@@ -97,27 +113,43 @@ pub trait Client {
                         self.on_flood_response(flood_response);
                     }
                     _ => {
-                        println!("Client {} received an unsupported packet type", self.client_id());
+                        println!(
+                            "Client {} received an unsupported packet type",
+                            self.client_id()
+                        );
                     }
                 }
             }
             Err(err) => {
-                eprintln!("Client {}: Error receiving packet: {:?}", self.client_id(), err);
+                eprintln!(
+                    "Client {}: Error receiving packet: {:?}",
+                    self.client_id(),
+                    err
+                );
             }
         }
     }
-    
-    fn handle_sim_controller_packets(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
+
+    fn handle_sim_controller_packets(
+        &mut self,
+        packet: Result<Packet, crossbeam_channel::RecvError>,
+    ) {
         match packet {
-            Ok(packet) => {
-                match packet.pack_type {
-                    _ => {
-                        println!("Client {}: Received a packet type from the simulation controller {:?}", self.client_id(), packet);
-                    }
+            Ok(packet) => match packet.pack_type {
+                _ => {
+                    println!(
+                        "Client {}: Received a packet type from the simulation controller {:?}",
+                        self.client_id(),
+                        packet
+                    );
                 }
-            }
+            },
             Err(err) => {
-                eprintln!("Client {}: Error receiving packet from the simulation controller: {:?}", self.client_id(), err);
+                eprintln!(
+                    "Client {}: Error receiving packet from the simulation controller: {:?}",
+                    self.client_id(),
+                    err
+                );
             }
         };
     }
@@ -138,14 +170,19 @@ pub trait Client {
 
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
-        self.sent_packets().insert(message.session_id, message.clone());
+        self.sent_packets()
+            .insert(message.session_id, message.clone());
         let drone_id = message.routing_header.hops[1];
         match self.senders().get(&drone_id) {
             Some(sender) => {
                 sender.send(message).unwrap();
             }
             None => {
-                eprintln!("Client {}: No sender found for client {}", self.client_id(), drone_id);
+                eprintln!(
+                    "Client {}: No sender found for client {}",
+                    self.client_id(),
+                    drone_id
+                );
             }
         }
     }
@@ -153,7 +190,9 @@ pub trait Client {
     /// Send a text message to a server
     fn send_message(&mut self, destination_id: u8, message: String) {
         let session_id = rand::random();
-        let fragments = self.deassembler().disassemble_message(message.as_bytes().to_vec(), session_id);
+        let fragments = self
+            .deassembler()
+            .disassemble_message(message.as_bytes().to_vec(), session_id);
         let client_id = self.client_id();
         // Send all the fragments to the server
         for fragment in fragments {
@@ -162,8 +201,8 @@ pub trait Client {
                 session_id,
                 routing_header: SourceRoutingHeader {
                     hop_index: 1,
-                    hops: topology::compute_route(&self.topology(), client_id, destination_id)
-                }
+                    hops: topology::compute_route(&self.topology(), client_id, destination_id),
+                },
             };
             self.send_packet(packet);
         }
@@ -181,8 +220,8 @@ pub trait Client {
                 session_id: rand::random(),
                 routing_header: SourceRoutingHeader {
                     hop_index: 1,
-                    hops: Vec::new()
-                }
+                    hops: Vec::new(),
+                },
             };
             sender.send(packet).unwrap();
         }

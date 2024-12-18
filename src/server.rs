@@ -1,4 +1,6 @@
-use crate::message::{ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType};
+use crate::message::{
+    ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType,
+};
 use wg_2024::network::*;
 
 pub trait Server {

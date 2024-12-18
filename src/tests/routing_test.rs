@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod routing_test {
-    use crate::topology::{Topology, compute_route};
+    use crate::topology::{compute_route, Topology};
 
     #[test]
     fn simple_routing() {
@@ -75,7 +75,7 @@ pub mod routing_test {
         topology.add_node(3);
         topology.add_node(4);
         topology.add_node(5);
-        
+
         topology.add_edge(1, 2);
         topology.add_edge(2, 3);
         topology.add_edge(3, 4);

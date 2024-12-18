@@ -63,10 +63,7 @@ impl Response for ChatResponse {}
  */
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerTypeRequest {
-    SendMessage {
-        from: NodeId,
-        to: NodeId
-    },
+    SendMessage { from: NodeId, to: NodeId },
 }
 
 impl DroneSend for ServerTypeRequest {}
@@ -77,7 +74,10 @@ impl Request for ServerTypeRequest {}
  */
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerTypeResponse {
-    MessageFrom { from: NodeId, server_type: ServerType },
+    MessageFrom {
+        from: NodeId,
+        server_type: ServerType,
+    },
     MessageSent,
 }
 
@@ -94,8 +94,8 @@ pub enum ServerType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SimControllerCommand {
     SendMessage(String, NodeId), // Send message to a server
-    Register(NodeId), // Register a client to a server
-    ClientList, // Get the list of available clients
+    Register(NodeId),            // Register a client to a server
+    ClientList,                  // Get the list of available clients
 }
 
 impl DroneSend for SimControllerCommand {}
