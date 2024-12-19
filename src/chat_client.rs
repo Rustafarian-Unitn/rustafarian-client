@@ -84,11 +84,26 @@ impl ChatClient {
 
         self.send_message(server_id, chat_message_json);
     }
+    
+    fn handle_chat_response(&mut self, response: ChatResponse) {
+        match response {
+            ChatResponse::ClientList(client_list) => {
+                println!("Client list: {:?}", client_list);
+                self.available_clients = client_list;
+            }
+            ChatResponse::MessageFrom { from, message } => {
+                println!("Message from {}: {:?}", from, message);
+            }
+            ChatResponse::MessageSent => {
+                println!("Message sent");
+            }
+        };
+    }
 }
 
 impl Client for ChatClient {
     type RequestType = ChatRequest;
-    type ResponseType = ChatResponse;
+    type ResponseType = ChatResponseWrapper;
 
     fn client_id(&self) -> u8 {
         self.client_id
@@ -108,15 +123,9 @@ impl Client for ChatClient {
 
     fn handle_response(&mut self, response: Self::ResponseType) {
         match response {
-            ChatResponse::ClientList(client_list) => {
-                println!("Client list: {:?}", client_list);
-                self.available_clients = client_list;
-            }
-            ChatResponse::MessageFrom { from, message } => {
-                println!("Message from {}: {:?}", from, message);
-            }
-            ChatResponse::MessageSent => {
-                println!("Message sent");
+            ChatResponseWrapper::Chat(response) => self.handle_chat_response(response),
+            ChatResponseWrapper::ServerType(server_response) => {
+                println!("Server response: {:?}", server_response)
             }
         }
     }
