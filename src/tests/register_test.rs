@@ -4,15 +4,12 @@ pub mod register_test {
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::packet::{Fragment, Packet, PacketType};
+    use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
+    use rustafarian_shared::messages::chat_messages::ChatRequest;
 
     use crate::{
-        assembler::{
-            assembler::{self, Assembler},
-            disassembler,
-        },
         chat_client::ChatClient,
         client::Client,
-        message::ChatRequest,
     };
 
     #[test]

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
+use rustafarian_shared::messages::{general_messages::{DroneSend, Message, Request, Response}, chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper}, commander_messages::SimControllerCommand};
 use crate::{
-    assembler::{self, assembler::Assembler, disassembler::Disassembler},
     client::Client,
-    message::{ChatRequest, ChatResponse, Message, ServerType, SimControllerCommand},
     topology::Topology,
 };
 use crossbeam_channel::{Receiver, Sender};
@@ -125,11 +125,11 @@ impl Client for ChatClient {
         &self.sim_controller_receiver
     }
 
-    fn assembler(&mut self) -> &mut crate::assembler::assembler::Assembler {
+    fn assembler(&mut self) -> &mut Assembler {
         &mut self.assembler
     }
 
-    fn deassembler(&mut self) -> &mut crate::assembler::disassembler::Disassembler {
+    fn deassembler(&mut self) -> &mut Disassembler {
         &mut self.deassembler
     }
 

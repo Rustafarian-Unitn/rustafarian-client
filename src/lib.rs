@@ -1,7 +1,5 @@
-pub mod assembler;
 pub mod chat_client;
 pub mod client;
-pub mod message;
 pub mod server;
 pub mod topology;
 

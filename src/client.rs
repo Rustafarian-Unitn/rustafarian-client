@@ -1,12 +1,10 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::{
-    assembler::{self, assembler::Assembler, disassembler::Disassembler},
-    message::{DroneSend, Message, Request, Response},
-    topology::{self, Topology},
-};
+use crate::topology::{self, Topology};
 use crossbeam::select;
 use crossbeam_channel::{select_biased, Receiver, Sender};
+use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
+use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Fragment, Packet, PacketType},

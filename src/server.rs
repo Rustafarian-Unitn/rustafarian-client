@@ -1,6 +1,5 @@
-use crate::message::{
-    ChatRequest, ChatResponse, DroneSend, Message, Request, Response, ServerType,
-};
+use rustafarian_shared::messages::{general_messages::{DroneSend, Message, Request, Response, ServerType}, chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper}}; 
+
 use wg_2024::network::*;
 
 pub trait Server {
