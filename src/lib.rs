@@ -1,6 +1,5 @@
 pub mod chat_client;
 pub mod client;
-pub mod server;
 pub mod topology;
 
 #[cfg(test)]
