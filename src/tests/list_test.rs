@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod client_list_test {
-    use std::{collections::HashMap, ops::MulAssign};
+    use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use wg_2024::packet::{Fragment, Packet, PacketType};
-    use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
+    use wg_2024::packet::{Packet, PacketType};
+    use rustafarian_shared::assembler::disassembler::Disassembler;
     use rustafarian_shared::messages::chat_messages::{ChatResponse, ChatResponseWrapper};
 
     use crate::{

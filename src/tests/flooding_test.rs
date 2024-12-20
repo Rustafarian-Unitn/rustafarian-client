@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod flooding_test {
-    use std::{collections::HashMap, thread};
+    use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::{

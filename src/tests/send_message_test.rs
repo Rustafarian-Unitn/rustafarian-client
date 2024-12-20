@@ -1,12 +1,12 @@
 #[cfg(test)]
 pub mod send_message_test {
-    use std::{collections::HashMap, ops::MulAssign};
+    use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use wg_2024::packet::{Fragment, Packet, PacketType};
+    use wg_2024::packet::{Packet, PacketType};
     
-    use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-    use rustafarian_shared::messages::{general_messages::{DroneSend, Message, Request, Response}, chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper}}; 
+    use rustafarian_shared::assembler::disassembler::Disassembler;
+    use rustafarian_shared::messages::chat_messages::ChatRequest; 
 
     use crate::{
         chat_client::ChatClient,
