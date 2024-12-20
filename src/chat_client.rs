@@ -55,22 +55,7 @@ impl ChatClient {
     pub fn register(&mut self, server_id: NodeId) -> () {
         let request = ChatRequest::Register(self.client_id);
         let request_json = serde_json::to_string(&request).unwrap();
-        let fragments = self
-            .deassembler
-            .disassemble_message(request_json.as_bytes().to_vec(), 0);
-        let session_id = rand::random();
-        let routing_header = self
-            .topology
-            .get_routing_header(self.client_id(), server_id);
-        let first_hop_id = routing_header.current_hop().unwrap();
-        for fragment in fragments {
-            let packet = Packet::new_fragment(routing_header.clone(), session_id, fragment);
-            self.senders
-                .get_mut(&first_hop_id)
-                .unwrap()
-                .send(packet)
-                .unwrap();
-        }
+        self.send_message(server_id, request_json);
     }
 
     pub fn send_chat_message(&mut self, server_id: NodeId, message: String) {
