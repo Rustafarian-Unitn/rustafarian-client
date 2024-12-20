@@ -1,23 +1,22 @@
 use std::collections::HashMap;
 
+use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-use rustafarian_shared::messages::{general_messages::{DroneSend, Message, Request, Response}, chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper}, commander_messages::SimControllerCommand};
-use crate::{
-    client::Client,
-    topology::Topology,
+use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper};
+use rustafarian_shared::messages::commander_messages::{
+    SimControllerChatCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
+use rustafarian_shared::topology::Topology;
+
 use crossbeam_channel::{Receiver, Sender};
-use wg_2024::{
-    network::NodeId,
-    packet::{Fragment, Packet, PacketType},
-};
+use wg_2024::{network::NodeId, packet::Packet};
 
 pub struct ChatClient {
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
     topology: Topology,
-    sim_controller_receiver: Receiver<Packet>,
+    sim_controller_receiver: Receiver<SimControllerChatCommand>,
     sim_controller_sender: Sender<Packet>,
     sent_packets: HashMap<u64, Packet>,
     available_clients: Vec<NodeId>,
@@ -30,7 +29,7 @@ impl ChatClient {
         client_id: u8,
         senders: HashMap<u8, Sender<Packet>>,
         receiver: Receiver<Packet>,
-        sim_controller_receiver: Receiver<Packet>,
+        sim_controller_receiver: Receiver<SimControllerChatCommand>,
         sim_controller_sender: Sender<Packet>,
     ) -> Self {
         ChatClient {
@@ -84,7 +83,7 @@ impl ChatClient {
 
         self.send_message(server_id, chat_message_json);
     }
-    
+
     fn handle_chat_response(&mut self, response: ChatResponse) {
         match response {
             ChatResponse::ClientList(client_list) => {
@@ -104,6 +103,8 @@ impl ChatClient {
 impl Client for ChatClient {
     type RequestType = ChatRequest;
     type ResponseType = ChatResponseWrapper;
+    type SimControllerMessage = SimControllerResponseWrapper;
+    type SimControllerCommand = SimControllerChatCommand;
 
     fn client_id(&self) -> u8 {
         self.client_id
@@ -117,7 +118,7 @@ impl Client for ChatClient {
         &self.receiver
     }
 
-    fn topology(&mut self) -> &mut crate::topology::Topology {
+    fn topology(&mut self) -> &mut Topology {
         &mut self.topology
     }
 
@@ -130,7 +131,7 @@ impl Client for ChatClient {
         }
     }
 
-    fn sim_controller_receiver(&self) -> &Receiver<Packet> {
+    fn sim_controller_receiver(&self) -> &Receiver<SimControllerChatCommand> {
         &self.sim_controller_receiver
     }
 
@@ -148,5 +149,33 @@ impl Client for ChatClient {
 
     fn sim_controller_sender(&self) -> &Sender<Packet> {
         &self.sim_controller_sender
+    }
+    
+    fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
+        match command {
+            SimControllerChatCommand::SendMessage(message, server_id, to) => {
+                self.send_chat_message(to, message);
+            }
+            SimControllerChatCommand::Register(server_id) => {
+                self.register(server_id);
+            }
+            SimControllerChatCommand::ClientList(server_id) => {
+                let client_list = self.get_client_list();
+                let response =
+                    SimControllerMessage::ClientListResponse(server_id, client_list.clone());
+                let response_json = serde_json::to_string(&response).unwrap();
+                self.send_message(server_id, response_json);
+            }
+            SimControllerChatCommand::FloodRequest => {
+                self.send_flood_request();
+            }
+            SimControllerChatCommand::Topology => {
+                let topology = self.topology.clone();
+                let response =
+                    SimControllerMessage::TopologyResponse(self.client_id, topology.nodes().to_vec());
+                let response_json = serde_json::to_string(&response).unwrap();
+                self.send_message(self.client_id, response_json);
+            }
+        }
     }
 }

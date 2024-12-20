@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod routing_test {
-    use crate::topology::{compute_route, Topology};
+    use rustafarian_shared::topology::{compute_route, Topology};
 
     #[test]
     fn simple_routing() {

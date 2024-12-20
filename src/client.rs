@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::topology::{self, Topology};
+use rustafarian_shared::topology::{compute_route, Topology};
+
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
@@ -14,6 +15,8 @@ pub const FRAGMENT_DSIZE: usize = 128;
 pub trait Client {
     type RequestType: Request;
     type ResponseType: Response;
+    type SimControllerMessage: DroneSend; // Message that can be sent to the sim controller
+    type SimControllerCommand: DroneSend; // Commands received from the simcontroller
 
     /// Returns the client id
     fn client_id(&self) -> u8;
@@ -28,11 +31,13 @@ pub trait Client {
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
     /// The channel where the simulation controller can send messages
-    fn sim_controller_receiver(&self) -> &Receiver<Packet>;
+    fn sim_controller_receiver(&self) -> &Receiver<Self::SimControllerCommand>;
     /// The channel where the simulation controller can receive messages
     fn sim_controller_sender(&self) -> &Sender<Packet>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType);
+    /// Handle a command received from the simulation controller
+    fn handle_controller_commands(&mut self, command: Self::SimControllerCommand);
     /// Contains all the packets sent by the client, in case they need to be sent again
     fn sent_packets(&mut self) -> &mut HashMap<u64, Packet>;
 
@@ -129,18 +134,10 @@ pub trait Client {
 
     fn handle_sim_controller_packets(
         &mut self,
-        packet: Result<Packet, crossbeam_channel::RecvError>,
+        packet: Result<Self::SimControllerCommand, crossbeam_channel::RecvError>,
     ) {
         match packet {
-            Ok(packet) => match packet.pack_type {
-                _ => {
-                    println!(
-                        "Client {}: Received a packet type from the simulation controller {:?}",
-                        self.client_id(),
-                        packet
-                    );
-                }
-            },
+            Ok(packet) => self.handle_controller_commands(packet),
             Err(err) => {
                 eprintln!(
                     "Client {}: Error receiving packet from the simulation controller: {:?}",
@@ -198,7 +195,7 @@ pub trait Client {
                 session_id,
                 routing_header: SourceRoutingHeader {
                     hop_index: 1,
-                    hops: topology::compute_route(&self.topology(), client_id, destination_id),
+                    hops: compute_route(&self.topology(), client_id, destination_id),
                 },
             };
             self.send_packet(packet);
