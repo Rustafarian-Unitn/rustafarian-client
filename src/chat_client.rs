@@ -69,6 +69,12 @@ impl ChatClient {
         self.send_message(server_id, chat_message_json);
     }
 
+    pub fn send_client_list_req(&mut self, server_id: NodeId) {
+        let request = ChatRequest::ClientList;
+        let request_json = serde_json::to_string(&request).unwrap();
+        self.send_message(server_id, request_json);
+    }
+
     fn handle_chat_response(&mut self, response: ChatResponse) {
         match response {
             ChatResponse::ClientList(client_list) => {
@@ -145,11 +151,7 @@ impl Client for ChatClient {
                 self.register(server_id);
             }
             SimControllerChatCommand::ClientList(server_id) => {
-                let client_list = self.get_client_list();
-                let response =
-                    SimControllerMessage::ClientListResponse(server_id, client_list.clone());
-                let response_json = serde_json::to_string(&response).unwrap();
-                self.send_message(server_id, response_json);
+                self.send_client_list_req(server_id);
             }
             SimControllerChatCommand::FloodRequest => {
                 self.send_flood_request();
