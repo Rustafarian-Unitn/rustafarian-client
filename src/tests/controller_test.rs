@@ -128,7 +128,48 @@ pub mod controller_test {
     }
 
     #[test]
-    fn send_message_command() {}
+    fn send_message_command() {
+        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let mut neighbors = HashMap::new();
+        neighbors.insert(2 as u8, neighbor.0);
+        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let client_id = 1;
+
+        let controller_channel_commands = unbounded();
+        let controller_channel_messages = unbounded();
+
+        let mut chat_client = ChatClient::new(
+            client_id,
+            neighbors,
+            channel.1,
+            controller_channel_commands.1,
+            controller_channel_messages.0,
+        );
+
+        chat_client.topology().add_node(2);
+        chat_client.topology().add_node(21);
+        chat_client.topology().add_edge(2, 21);
+        chat_client.topology().add_edge(1, 2);
+
+        let message = "Hello, world".to_string();
+
+        let send_message_command = SimControllerChatCommand::SendMessage(message.clone(), 21, 2);
+
+        chat_client.handle_controller_commands(send_message_command);
+
+        let received_packet = neighbor.1.recv().unwrap();
+
+        let fragment = match received_packet.pack_type {
+            PacketType::MsgFragment(fragment) => fragment,
+            _ => panic!("Packet type should be MsgFragment"),
+        };
+
+        let constructed_message = Assembler::new().add_fragment(fragment, received_packet.session_id).unwrap();
+
+        let parsed_message = serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap()).unwrap();
+
+        assert!(matches!(parsed_message, ChatRequest::SendMessage { to: 2, from: 1, message }));
+    }
 
     #[test]
     fn topology_request() {}
