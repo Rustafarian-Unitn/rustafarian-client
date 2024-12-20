@@ -5,7 +5,7 @@ pub mod client_list_test {
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::packet::{Fragment, Packet, PacketType};
     use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-    use rustafarian_shared::messages::chat_messages::ChatResponse;
+    use rustafarian_shared::messages::chat_messages::{ChatResponse, ChatResponseWrapper};
 
     use crate::{
         chat_client::ChatClient,
@@ -28,7 +28,7 @@ pub mod client_list_test {
             unbounded().0,
         );
 
-        let client_list_response = ChatResponse::ClientList([11, 12].to_vec());
+        let client_list_response = ChatResponseWrapper::Chat(ChatResponse::ClientList([11, 12].to_vec()));
 
         let mut disassembler = Disassembler::new();
         let fragments = disassembler.disassemble_message(

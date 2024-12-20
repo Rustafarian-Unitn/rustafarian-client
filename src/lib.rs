@@ -8,4 +8,5 @@ mod tests {
     mod register_test;
     mod routing_test;
     mod send_message_test;
+    mod controller_test;
 }
