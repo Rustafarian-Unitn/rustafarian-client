@@ -6,7 +6,7 @@ pub mod controller_test {
     use rustafarian_shared::assembler::disassembler;
     use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
     use rustafarian_shared::messages::chat_messages::ChatRequest;
-    use rustafarian_shared::messages::commander_messages::{SimControllerChatCommand, SimControllerResponseWrapper};
+    use rustafarian_shared::messages::commander_messages::{SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper};
     use wg_2024::packet::{Fragment, Packet, PacketType};
 
     use crate::chat_client::ChatClient;
@@ -31,7 +31,7 @@ pub mod controller_test {
             controller_channel_messages.0,
         );
 
-        let flood_command = SimControllerChatCommand::FloodRequest;
+        let flood_command = SimControllerCommand::FloodRequest;
 
         chat_client.handle_controller_commands(flood_command);
 
@@ -67,7 +67,7 @@ pub mod controller_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        let register_command = SimControllerChatCommand::Register(21);
+        let register_command = SimControllerCommand::Register(21);
 
         chat_client.handle_controller_commands(register_command);
 
@@ -109,7 +109,7 @@ pub mod controller_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        let client_list_command = SimControllerChatCommand::ClientList(21);
+        let client_list_command = SimControllerCommand::ClientList(21);
 
         chat_client.handle_controller_commands(client_list_command);
 
@@ -153,7 +153,7 @@ pub mod controller_test {
 
         let message = "Hello, world".to_string();
 
-        let send_message_command = SimControllerChatCommand::SendMessage(message.clone(), 21, 2);
+        let send_message_command = SimControllerCommand::SendMessage(message.clone(), 21, 2);
 
         chat_client.handle_controller_commands(send_message_command);
 
@@ -172,5 +172,46 @@ pub mod controller_test {
     }
 
     #[test]
-    fn topology_request() {}
+    fn topology_request() {
+        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let mut neighbors = HashMap::new();
+        neighbors.insert(2 as u8, neighbor.0);
+        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let client_id = 1;
+
+        let controller_channel_commands = unbounded();
+        let controller_channel_messages = unbounded();
+
+        let mut chat_client = ChatClient::new(
+            client_id,
+            neighbors,
+            channel.1,
+            controller_channel_commands.1,
+            controller_channel_messages.0,
+        );
+
+        chat_client.topology().add_node(2);
+        chat_client.topology().add_node(21);
+        chat_client.topology().add_edge(2, 21);
+        chat_client.topology().add_edge(1, 2);
+
+        let topology_request = SimControllerCommand::Topology;
+
+        chat_client.handle_controller_commands(topology_request);
+
+        let received_packet = controller_channel_messages.1.recv().unwrap();
+
+        let message = match received_packet {
+            SimControllerResponseWrapper::Message(message) => message,
+            _ => panic!("Packet type should be Message"),
+        };
+
+        let topology_msg = match message {
+            SimControllerMessage::TopologyResponse(topology) => topology,
+            _ => panic!("Message should be Topology"),
+        };
+
+        assert_eq!(topology_msg.edges(), chat_client.topology().edges());
+        assert_eq!(topology_msg.nodes(), chat_client.topology().nodes());
+    }
 }

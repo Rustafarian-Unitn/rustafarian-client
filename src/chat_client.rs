@@ -4,7 +4,7 @@ use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper};
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerChatCommand, SimControllerMessage, SimControllerResponseWrapper,
+    SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
 use rustafarian_shared::topology::Topology;
 
@@ -16,8 +16,8 @@ pub struct ChatClient {
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
     topology: Topology,
-    sim_controller_receiver: Receiver<SimControllerChatCommand>,
-    sim_controller_sender: Sender<Packet>,
+    sim_controller_receiver: Receiver<SimControllerCommand>,
+    sim_controller_sender: Sender<SimControllerResponseWrapper>,
     sent_packets: HashMap<u64, Packet>,
     available_clients: Vec<NodeId>,
     assembler: Assembler,
@@ -29,8 +29,8 @@ impl ChatClient {
         client_id: u8,
         senders: HashMap<u8, Sender<Packet>>,
         receiver: Receiver<Packet>,
-        sim_controller_receiver: Receiver<SimControllerChatCommand>,
-        sim_controller_sender: Sender<Packet>,
+        sim_controller_receiver: Receiver<SimControllerCommand>,
+        sim_controller_sender: Sender<SimControllerResponseWrapper>,
     ) -> Self {
         ChatClient {
             client_id,
@@ -95,7 +95,7 @@ impl Client for ChatClient {
     type RequestType = ChatRequest;
     type ResponseType = ChatResponseWrapper;
     type SimControllerMessage = SimControllerResponseWrapper;
-    type SimControllerCommand = SimControllerChatCommand;
+    type SimControllerCommand = SimControllerCommand;
 
     fn client_id(&self) -> u8 {
         self.client_id
@@ -122,7 +122,7 @@ impl Client for ChatClient {
         }
     }
 
-    fn sim_controller_receiver(&self) -> &Receiver<SimControllerChatCommand> {
+    fn sim_controller_receiver(&self) -> &Receiver<SimControllerCommand> {
         &self.sim_controller_receiver
     }
 
@@ -138,31 +138,31 @@ impl Client for ChatClient {
         &mut self.sent_packets
     }
 
-    fn sim_controller_sender(&self) -> &Sender<Packet> {
+    fn sim_controller_sender(&self) -> &Sender<SimControllerResponseWrapper> {
         &self.sim_controller_sender
     }
     
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
         match command {
-            SimControllerChatCommand::SendMessage(message, server_id, to) => {
+            SimControllerCommand::SendMessage(message, server_id, to) => {
                 self.send_chat_message(to, message);
             }
-            SimControllerChatCommand::Register(server_id) => {
+            SimControllerCommand::Register(server_id) => {
                 self.register(server_id);
             }
-            SimControllerChatCommand::ClientList(server_id) => {
+            SimControllerCommand::ClientList(server_id) => {
                 self.send_client_list_req(server_id);
             }
-            SimControllerChatCommand::FloodRequest => {
+            SimControllerCommand::FloodRequest => {
                 self.send_flood_request();
             }
-            SimControllerChatCommand::Topology => {
+            SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
                 let response =
-                    SimControllerMessage::TopologyResponse(self.client_id, topology.nodes().to_vec());
-                let response_json = serde_json::to_string(&response).unwrap();
-                self.send_message(self.client_id, response_json);
+                    SimControllerMessage::TopologyResponse(topology);
+                self.sim_controller_sender.send(SimControllerResponseWrapper::Message(response)).unwrap();
             }
+            _ => {}
         }
     }
 }

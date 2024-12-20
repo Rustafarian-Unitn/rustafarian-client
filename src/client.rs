@@ -33,7 +33,7 @@ pub trait Client {
     /// The channel where the simulation controller can send messages
     fn sim_controller_receiver(&self) -> &Receiver<Self::SimControllerCommand>;
     /// The channel where the simulation controller can receive messages
-    fn sim_controller_sender(&self) -> &Sender<Packet>;
+    fn sim_controller_sender(&self) -> &Sender<Self::SimControllerMessage>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType);
     /// Handle a command received from the simulation controller
