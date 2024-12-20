@@ -10,8 +10,8 @@ use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{network::NodeId, packet::Packet};
+use std::marker::Send;
 
-#[derive(Debug, Send)]
 pub struct ChatClient {
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
