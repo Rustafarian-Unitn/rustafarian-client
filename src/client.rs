@@ -102,6 +102,7 @@ pub trait Client {
             let message_str = String::from_utf8_lossy(&message);
             self.on_text_response_arrived(source_id, packet.session_id, message_str.to_string());
         }
+        println!("Source_id: {}", source_id);
         self.send_ack(fragment_index, source_id);
     }
 
@@ -271,6 +272,7 @@ pub trait Client {
                 hops: compute_route(&self.topology(), client_id, destination_id),
             },
         };
+        println!("Sending packet: {:?}", packet.clone());
         self.send_packet(packet);
     }
 
