@@ -5,6 +5,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
+use wg_2024::packet::Ack;
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
@@ -66,7 +67,6 @@ pub trait Client {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
                 let response = self.handle_response(message.content, message.source_id);
-                // TODO: send ACK
             }
             Err(str) => panic!("{}", str),
         }
@@ -98,17 +98,20 @@ pub trait Client {
                 match packet.pack_type {
                     // Handle text fragment
                     PacketType::MsgFragment(fragment) => {
+                        let source_id = packet.routing_header.hops[0];
+                        let fragment_index = fragment.fragment_index;
                         // If the message is complete
                         if let Some(message) =
                             self.assembler().add_fragment(fragment, packet.session_id)
                         {
                             let message_str = String::from_utf8_lossy(&message);
                             self.on_text_response_arrived(
-                                0,
+                                source_id,
                                 packet.session_id,
                                 message_str.to_string(),
                             );
                         }
+                        self.send_ack(fragment_index, source_id);
                     }
                     // Handle flood response
                     PacketType::FloodResponse(flood_response) => {
@@ -200,6 +203,20 @@ pub trait Client {
             };
             self.send_packet(packet);
         }
+    }
+
+    fn send_ack(&mut self, fragment_index: u64, destination_id: u8) {
+        let session_id = rand::random();
+        let client_id = self.client_id();
+        let packet = Packet {
+            pack_type: PacketType::Ack(Ack { fragment_index }),
+            session_id,
+            routing_header: SourceRoutingHeader {
+                hop_index: 1,
+                hops: compute_route(&self.topology(), client_id, destination_id),
+            },
+        };
+        self.send_packet(packet);
     }
 
     /// Send flood request to the neighbors

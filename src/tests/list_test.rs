@@ -43,14 +43,19 @@ pub mod client_list_test {
             session_id: rand::random(),
             routing_header: wg_2024::network::SourceRoutingHeader {
                 hop_index: 1,
-                hops: vec![],
+                hops: vec![21, 2, 1],
             },
         };
 
+        chat_client.topology().add_node(2);
+        chat_client.topology().add_node(21);
+        chat_client.topology().add_edge(2, 21);
+        chat_client.topology().add_edge(1, 2);
+
         chat_client.handle_drone_packets(Ok(fake_packet));
 
-        println!("{:?}", chat_client.get_client_list());
+        println!("Client list aaaa: {:?}", chat_client.get_client_list());
 
-        assert_eq!(chat_client.get_client_list().get(&0).unwrap(), &vec![11, 12]);
+        assert_eq!(chat_client.get_client_list().get(&21).unwrap(), &vec![11, 12]);
     }
 }
