@@ -50,7 +50,7 @@ pub mod client_list_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        chat_client.handle_drone_packets(Ok(fake_packet));
+        chat_client.on_drone_packet_received(Ok(fake_packet));
 
         println!("Client list aaaa: {:?}", chat_client.get_client_list());
 

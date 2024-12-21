@@ -5,7 +5,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
-use wg_2024::packet::{Ack, NackType};
+use wg_2024::packet::{Ack, Fragment, Nack, NackType};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
@@ -70,8 +70,10 @@ pub trait Client {
         }
     }
 
-    /// Handle a FloodResponse
-    fn on_flood_response(&mut self, flood_response: FloodResponse) {
+    /// When a FloodResponse is received from a Drone
+    /// Behavior: Add the nodes to the topology, and add the edges based on the order of the hops
+    /// Then, send ACK
+    fn on_flood_response_received(&mut self, flood_response: FloodResponse) {
         println!(
             "Client {} received FloodResponse: {:?}",
             self.client_id(),
@@ -89,63 +91,76 @@ pub trait Client {
         }
     }
 
-    /// Handle a packet received from a drone
-    fn handle_drone_packets(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
-        match packet {
-            Ok(packet) => {
-                match packet.pack_type {
-                    // Handle text fragment
-                    PacketType::MsgFragment(fragment) => {
-                        let source_id = packet.routing_header.hops[0];
-                        let fragment_index = fragment.fragment_index;
-                        // If the message is complete
-                        if let Some(message) =
-                            self.assembler().add_fragment(fragment, packet.session_id)
-                        {
-                            let message_str = String::from_utf8_lossy(&message);
-                            self.on_text_response_arrived(
-                                source_id,
-                                packet.session_id,
-                                message_str.to_string(),
-                            );
-                        }
-                        self.send_ack(fragment_index, source_id);
-                    }
-                    // Handle flood response
-                    PacketType::FloodResponse(flood_response) => {
-                        self.on_flood_response(flood_response);
-                    }
-                    PacketType::Nack(nack) => {
-                        if !matches!(nack.nack_type, NackType::Dropped) {
-                            self.send_flood_request();
-                        }
-                        match self.sent_packets().get(&packet.session_id) {
-                            Some(lost_packet) => {
-                                let lost_packet = lost_packet.clone();
-                                self.send_packet(lost_packet);
-                            }
-                            None => {
-                                eprintln!(
-                                    "Packet with session_id: {} not found?! Packet list: {:?}",
-                                    packet.session_id,
-                                    self.sent_packets()
-                                );
-                            }
-                        }
-                    }
-                    _ => {
-                        println!(
-                            "Client {} received an unsupported packet type",
-                            self.client_id()
-                        );
-                    }
-                }
+    /// When a fragment is received from a Drone
+    /// Behavior: recompose the original message from the fragments. If the message is completed, call on_text_response_arrived
+    fn on_fragment_received(&mut self, packet: Packet, fragment: Fragment) {
+        let source_id = packet.routing_header.hops[0];
+        let fragment_index = fragment.fragment_index;
+        // If the message is complete
+        if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
+            let message_str = String::from_utf8_lossy(&message);
+            self.on_text_response_arrived(source_id, packet.session_id, message_str.to_string());
+        }
+        self.send_ack(fragment_index, source_id);
+    }
+
+    /// When a NACK (Negative Acknowledgment) is received
+    /// Behavior: send a flood request to update the topology if the problem was in the routing
+    /// Then, resend the packet
+    fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
+        if !matches!(nack.nack_type, NackType::Dropped) {
+            self.send_flood_request();
+        }
+        match self.sent_packets().get(&packet.session_id) {
+            Some(lost_packet) => {
+                let lost_packet = lost_packet.clone();
+                self.send_packet(lost_packet);
             }
-            Err(err) => {
+            None => {
                 eprintln!(
-                    "Client {}: Error receiving packet: {:?}",
-                    self.client_id(),
-                    err
+                    "Packet with session_id: {} not found?! Packet list: {:?}",
+                    packet.session_id,
+                    self.sent_packets()
+                );
+            }
+        }
+    }
+
+    fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
+        // self.sent_packets().get_mut();
+    }
+
+    /// Handle a packet received from a drone based on the type
+    fn on_drone_packet_received(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
+        if packet.is_err() {
+            eprintln!(
+                "Client {}: Error receiving packet: {:?}",
+                self.client_id(),
+                packet.err().unwrap()
+            );
+            return;
+        }
+        let packet = packet.unwrap();
+        let packet_type = packet.pack_type.clone();
+        match packet_type {
+            // Handle text fragment
+            PacketType::MsgFragment(fragment) => {
+                self.on_fragment_received(packet, fragment);
+            }
+            // Handle flood response
+            PacketType::FloodResponse(flood_response) => {
+                self.on_flood_response_received(flood_response);
+            }
+            PacketType::Nack(nack) => {
+                self.on_nack_received(packet, nack);
+            }
+            PacketType::Ack(ack) => {
+                self.on_ack_received(packet, ack);
+            }
+            _ => {
+                println!(
+                    "Client {} received an unsupported packet type",
+                    self.client_id()
                 );
             }
         }
@@ -175,7 +190,7 @@ pub trait Client {
                     self.handle_sim_controller_packets(packet);
                 }
                 recv(self.receiver()) -> packet => {
-                    self.handle_drone_packets(packet);
+                    self.on_drone_packet_received(packet);
                 }
             }
         }

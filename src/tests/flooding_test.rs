@@ -56,7 +56,7 @@ pub mod flooding_test {
         let mut chat_client =
             ChatClient::new(1, neighbors, channel.1, unbounded().1, unbounded().0);
 
-        chat_client.on_flood_response(FloodResponse {
+        chat_client.on_flood_response_received(FloodResponse {
             flood_id: 1,
             path_trace: [
                 (1, NodeType::Drone),
