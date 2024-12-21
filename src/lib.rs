@@ -10,4 +10,5 @@ mod tests {
     mod routing_test;
     mod send_message_test;
     mod ack_test;
+    mod nack_test;
 }
