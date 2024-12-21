@@ -35,7 +35,7 @@ pub trait Client {
     /// The channel where the simulation controller can receive messages
     fn sim_controller_sender(&self) -> &Sender<Self::SimControllerMessage>;
     /// Handle a response received from the server
-    fn handle_response(&mut self, response: Self::ResponseType);
+    fn handle_response(&mut self, response: Self::ResponseType, sender_id: NodeId);
     /// Handle a command received from the simulation controller
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand);
     /// Contains all the packets sent by the client, in case they need to be sent again
@@ -65,7 +65,7 @@ pub trait Client {
     ) {
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => {
-                let response = self.handle_response(message.content);
+                let response = self.handle_response(message.content, message.source_id);
                 // TODO: send ACK
             }
             Err(str) => panic!("{}", str),

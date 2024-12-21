@@ -49,6 +49,8 @@ pub mod client_list_test {
 
         chat_client.handle_drone_packets(Ok(fake_packet));
 
-        assert_eq!(chat_client.get_client_list(), &vec![11, 12]);
+        println!("{:?}", chat_client.get_client_list());
+
+        assert_eq!(chat_client.get_client_list().get(&0).unwrap(), &vec![11, 12]);
     }
 }

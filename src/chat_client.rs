@@ -10,7 +10,6 @@ use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{network::NodeId, packet::Packet};
-use std::marker::Send;
 
 pub struct ChatClient {
     client_id: u8,
@@ -20,9 +19,9 @@ pub struct ChatClient {
     sim_controller_receiver: Receiver<SimControllerCommand>,
     sim_controller_sender: Sender<SimControllerResponseWrapper>,
     sent_packets: HashMap<u64, Packet>,
-    available_clients: Vec<NodeId>,
+    available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
     assembler: Assembler,
-    deassembler: Disassembler,
+    disassembler: Disassembler,
 }
 
 impl ChatClient {
@@ -41,14 +40,14 @@ impl ChatClient {
             sim_controller_receiver,
             sim_controller_sender,
             sent_packets: HashMap::new(),
-            available_clients: Vec::new(),
+            available_clients: HashMap::new(),
             assembler: Assembler::new(),
-            deassembler: Disassembler::new(),
+            disassembler: Disassembler::new(),
         }
     }
 
     /// Get the list of available clients in the chat server
-    pub fn get_client_list(&mut self) -> &mut Vec<NodeId> {
+    pub fn get_client_list(&mut self) -> &mut HashMap<NodeId, Vec<NodeId>> {
         &mut self.available_clients
     }
 
@@ -76,11 +75,11 @@ impl ChatClient {
         self.send_message(server_id, request_json);
     }
 
-    fn handle_chat_response(&mut self, response: ChatResponse) {
+    fn handle_chat_response(&mut self, response: ChatResponse, server_id: NodeId) {
         match response {
             ChatResponse::ClientList(client_list) => {
                 println!("Client list: {:?}", client_list);
-                self.available_clients = client_list;
+                self.available_clients.insert(server_id, client_list);
             }
             ChatResponse::MessageFrom { from, message } => {
                 println!("Message from {}: {:?}", from, message);
@@ -114,9 +113,9 @@ impl Client for ChatClient {
         &mut self.topology
     }
 
-    fn handle_response(&mut self, response: Self::ResponseType) {
+    fn handle_response(&mut self, response: Self::ResponseType, server_id: NodeId) {
         match response {
-            ChatResponseWrapper::Chat(response) => self.handle_chat_response(response),
+            ChatResponseWrapper::Chat(response) => self.handle_chat_response(response, server_id),
             ChatResponseWrapper::ServerType(server_response) => {
                 println!("Server response: {:?}", server_response)
             }
@@ -132,7 +131,7 @@ impl Client for ChatClient {
     }
 
     fn deassembler(&mut self) -> &mut Disassembler {
-        &mut self.deassembler
+        &mut self.disassembler
     }
 
     fn sent_packets(&mut self) -> &mut HashMap<u64, Packet> {
