@@ -5,7 +5,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
-use wg_2024::packet::Ack;
+use wg_2024::packet::{Ack, NackType};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
@@ -118,6 +118,9 @@ pub trait Client {
                         self.on_flood_response(flood_response);
                     }
                     PacketType::Nack(nack) => {
+                        if !matches!(nack.nack_type, NackType::Dropped) {
+                            self.send_flood_request();
+                        }
                         match self.sent_packets().get(&packet.session_id) {
                             Some(lost_packet) => {
                                 let lost_packet = lost_packet.clone();
