@@ -40,7 +40,7 @@ pub trait Client {
     /// Handle a command received from the simulation controller
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand);
     /// Contains all the packets sent by the client, in case they need to be sent again
-    fn sent_packets(&mut self) -> &mut HashMap<u64, Packet>;
+    fn sent_packets(&mut self) -> &mut HashMap<u64, Vec<Packet>>;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -72,7 +72,6 @@ pub trait Client {
 
     /// When a FloodResponse is received from a Drone
     /// Behavior: Add the nodes to the topology, and add the edges based on the order of the hops
-    /// Then, send ACK
     fn on_flood_response_received(&mut self, flood_response: FloodResponse) {
         println!(
             "Client {} received FloodResponse: {:?}",
@@ -112,8 +111,14 @@ pub trait Client {
             self.send_flood_request();
         }
         match self.sent_packets().get(&packet.session_id) {
-            Some(lost_packet) => {
-                let lost_packet = lost_packet.clone();
+            Some(sent_packets) => {
+                if (sent_packets.len() as u64) < nack.fragment_index {
+                    eprintln!("Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list: {:?}", nack.fragment_index, sent_packets);
+                }
+                let lost_packet = sent_packets
+                    .get(nack.fragment_index as usize)
+                    .unwrap()
+                    .clone();
                 self.send_packet(lost_packet);
             }
             None => {
@@ -199,7 +204,9 @@ pub trait Client {
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
         self.sent_packets()
-            .insert(message.session_id, message.clone());
+            .entry(message.session_id)
+            .or_insert(Vec::new())
+            .push(message.clone());
         let drone_id = message.routing_header.hops[1];
         match self.senders().get(&drone_id) {
             Some(sender) => {
