@@ -65,9 +65,7 @@ pub trait Client {
         raw_content: String,
     ) {
         match self.compose_message(source_id, session_id, raw_content) {
-            Ok(message) => {
-                let response = self.handle_response(message.content, message.source_id);
-            }
+            Ok(message) => self.handle_response(message.content, message.source_id),
             Err(str) => panic!("{}", str),
         }
     }
@@ -127,7 +125,11 @@ pub trait Client {
                                 self.send_packet(lost_packet);
                             }
                             None => {
-                                eprintln!("Packet with session_id: {} not found?! Packet list: {:?}", packet.session_id, self.sent_packets());
+                                eprintln!(
+                                    "Packet with session_id: {} not found?! Packet list: {:?}",
+                                    packet.session_id,
+                                    self.sent_packets()
+                                );
                             }
                         }
                     }

@@ -4,14 +4,11 @@ pub mod send_message_test {
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::packet::{Packet, PacketType};
-    
-    use rustafarian_shared::assembler::disassembler::Disassembler;
-    use rustafarian_shared::messages::chat_messages::ChatRequest; 
 
-    use crate::{
-        chat_client::ChatClient,
-        client::Client,
-    };
+    use rustafarian_shared::assembler::disassembler::Disassembler;
+    use rustafarian_shared::messages::chat_messages::ChatRequest;
+
+    use crate::{chat_client::ChatClient, client::Client};
 
     #[test]
     fn simple_send_message() {
@@ -45,8 +42,8 @@ pub mod send_message_test {
         };
         let serialized_message = serde_json::to_string(&message_req).unwrap();
 
-        let fragments = Disassembler::new()
-            .disassemble_message(serialized_message.as_bytes().to_vec(), 0);
+        let fragments =
+            Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);
 
         let received_packet = neighbor.1.recv().unwrap();
 
@@ -90,8 +87,8 @@ pub mod send_message_test {
         };
         let serialized_message = serde_json::to_string(&message_req).unwrap();
 
-        let fragments = Disassembler::new()
-            .disassemble_message(serialized_message.as_bytes().to_vec(), 0);
+        let fragments =
+            Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);
 
         for frag_index in 0..fragments.len() {
             let received_packet = neighbor.1.recv().unwrap();
@@ -103,6 +100,5 @@ pub mod send_message_test {
 
             assert_eq!(fragment.data, fragments[frag_index].data);
         }
-        
     }
 }

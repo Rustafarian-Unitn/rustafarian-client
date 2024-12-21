@@ -6,7 +6,9 @@ pub mod controller_test {
     use rustafarian_shared::assembler::disassembler;
     use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
     use rustafarian_shared::messages::chat_messages::ChatRequest;
-    use rustafarian_shared::messages::commander_messages::{SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper};
+    use rustafarian_shared::messages::commander_messages::{
+        SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
+    };
     use wg_2024::packet::{Fragment, Packet, PacketType};
 
     use crate::chat_client::ChatClient;
@@ -78,9 +80,13 @@ pub mod controller_test {
             _ => panic!("Packet type should be MsgFragment"),
         };
 
-        let constructed_message = Assembler::new().add_fragment(fragment, received_packet.session_id).unwrap();
+        let constructed_message = Assembler::new()
+            .add_fragment(fragment, received_packet.session_id)
+            .unwrap();
 
-        let parsed_message = serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap()).unwrap();
+        let parsed_message =
+            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
+                .unwrap();
 
         assert!(matches!(parsed_message, ChatRequest::Register(1)));
     }
@@ -120,9 +126,13 @@ pub mod controller_test {
             _ => panic!("Packet type should be MsgFragment"),
         };
 
-        let constructed_message = Assembler::new().add_fragment(fragment, received_packet.session_id).unwrap();
+        let constructed_message = Assembler::new()
+            .add_fragment(fragment, received_packet.session_id)
+            .unwrap();
 
-        let parsed_message = serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap()).unwrap();
+        let parsed_message =
+            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
+                .unwrap();
 
         assert!(matches!(parsed_message, ChatRequest::ClientList));
     }
@@ -164,11 +174,22 @@ pub mod controller_test {
             _ => panic!("Packet type should be MsgFragment"),
         };
 
-        let constructed_message = Assembler::new().add_fragment(fragment, received_packet.session_id).unwrap();
+        let constructed_message = Assembler::new()
+            .add_fragment(fragment, received_packet.session_id)
+            .unwrap();
 
-        let parsed_message = serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap()).unwrap();
+        let parsed_message =
+            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
+                .unwrap();
 
-        assert!(matches!(parsed_message, ChatRequest::SendMessage { to: 2, from: 1, message }));
+        assert!(matches!(
+            parsed_message,
+            ChatRequest::SendMessage {
+                to: 2,
+                from: 1,
+                message
+            }
+        ));
     }
 
     #[test]

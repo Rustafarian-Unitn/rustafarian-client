@@ -3,14 +3,11 @@ pub mod register_test {
     use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use wg_2024::packet::{Fragment, Packet, PacketType};
     use rustafarian_shared::assembler::assembler::Assembler;
     use rustafarian_shared::messages::chat_messages::ChatRequest;
+    use wg_2024::packet::{Fragment, Packet, PacketType};
 
-    use crate::{
-        chat_client::ChatClient,
-        client::Client,
-    };
+    use crate::{chat_client::ChatClient, client::Client};
 
     #[test]
     fn simple_register() {

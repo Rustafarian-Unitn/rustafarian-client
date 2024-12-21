@@ -141,7 +141,7 @@ impl Client for ChatClient {
     fn sim_controller_sender(&self) -> &Sender<SimControllerResponseWrapper> {
         &self.sim_controller_sender
     }
-    
+
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
         match command {
             SimControllerCommand::SendMessage(message, server_id, to) => {
@@ -158,9 +158,10 @@ impl Client for ChatClient {
             }
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
-                let response =
-                    SimControllerMessage::TopologyResponse(topology);
-                self.sim_controller_sender.send(SimControllerResponseWrapper::Message(response)).unwrap();
+                let response = SimControllerMessage::TopologyResponse(topology);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
             }
             _ => {}
         }

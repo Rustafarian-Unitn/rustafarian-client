@@ -3,14 +3,11 @@ pub mod client_list_test {
     use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use wg_2024::packet::{Packet, PacketType};
     use rustafarian_shared::assembler::disassembler::Disassembler;
     use rustafarian_shared::messages::chat_messages::{ChatResponse, ChatResponseWrapper};
+    use wg_2024::packet::{Packet, PacketType};
 
-    use crate::{
-        chat_client::ChatClient,
-        client::Client,
-    };
+    use crate::{chat_client::ChatClient, client::Client};
 
     #[test]
     fn test_receive_client_list() {
@@ -28,7 +25,8 @@ pub mod client_list_test {
             unbounded().0,
         );
 
-        let client_list_response = ChatResponseWrapper::Chat(ChatResponse::ClientList([11, 12].to_vec()));
+        let client_list_response =
+            ChatResponseWrapper::Chat(ChatResponse::ClientList([11, 12].to_vec()));
 
         let mut disassembler = Disassembler::new();
         let fragments = disassembler.disassemble_message(
@@ -56,6 +54,9 @@ pub mod client_list_test {
 
         println!("Client list aaaa: {:?}", chat_client.get_client_list());
 
-        assert_eq!(chat_client.get_client_list().get(&21).unwrap(), &vec![11, 12]);
+        assert_eq!(
+            chat_client.get_client_list().get(&21).unwrap(),
+            &vec![11, 12]
+        );
     }
 }
