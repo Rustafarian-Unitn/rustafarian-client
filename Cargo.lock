@@ -179,6 +179,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustafarian-client"
+version = "0.1.0"
+dependencies = [
+ "crossbeam",
+ "crossbeam-channel",
+ "rand",
+ "rustafarian-project",
+ "rustafarian-shared",
+ "serde",
+ "serde_json",
+ "wg_2024",
+]
+
+[[package]]
 name = "rustafarian-drone"
 version = "0.1.0"
 source = "git+https://github.com/Rustafarian-Unitn/rustafarian-drone?branch=development#0aba6d45bccde34d8e2d5234af42003a3a5a1670"
@@ -208,20 +222,6 @@ name = "rustafarian-shared"
 version = "0.1.1"
 source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#6be8fdad90c2ad83289c41f310651a430a9f7667"
 dependencies = [
- "serde",
- "serde_json",
- "wg_2024",
-]
-
-[[package]]
-name = "rustafarian_client"
-version = "0.1.0"
-dependencies = [
- "crossbeam",
- "crossbeam-channel",
- "rand",
- "rustafarian-project",
- "rustafarian-shared",
  "serde",
  "serde_json",
  "wg_2024",
