@@ -117,6 +117,17 @@ pub trait Client {
                     PacketType::FloodResponse(flood_response) => {
                         self.on_flood_response(flood_response);
                     }
+                    PacketType::Nack(nack) => {
+                        match self.sent_packets().get(&packet.session_id) {
+                            Some(lost_packet) => {
+                                let lost_packet = lost_packet.clone();
+                                self.send_packet(lost_packet);
+                            }
+                            None => {
+                                eprintln!("Packet with session_id: {} not found?! Packet list: {:?}", packet.session_id, self.sent_packets());
+                            }
+                        }
+                    }
                     _ => {
                         println!(
                             "Client {} received an unsupported packet type",
