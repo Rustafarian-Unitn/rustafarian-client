@@ -41,6 +41,8 @@ pub trait Client {
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand);
     /// Contains all the packets sent by the client, in case they need to be sent again
     fn sent_packets(&mut self) -> &mut HashMap<u64, Vec<Packet>>;
+    /// Contains the count of all packets with a certain session_id that have been acked
+    fn acked_packets_count(&mut self) -> &mut HashMap<u64, usize>;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -133,6 +135,21 @@ pub trait Client {
 
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
         // self.sent_packets().get_mut();
+        // Increase the count of acked packets for this session ID
+        self.acked_packets_count()
+            .entry(packet.session_id)
+            .and_modify(|e| *e += 1)
+            .or_insert(1);
+        // Get the current count of acked packets for this session ID
+        let acked_packet_count = self.acked_packets_count().get(&packet.session_id).unwrap().clone();
+        // Get the total number of packets with this session id
+        let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len();
+
+        // If all packets have received the acknowledgment
+        if acked_packet_count >= sent_packet_count {
+            self.sent_packets().remove(&packet.session_id);
+            self.acked_packets_count().remove(&packet.session_id);
+        }
     }
 
     /// Handle a packet received from a drone based on the type
