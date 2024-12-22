@@ -1,6 +1,8 @@
 #[cfg(test)]
 pub mod ack_test {
     use std::collections::HashMap;
+    use std::thread;
+    use std::time::Duration;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::disassembler::Disassembler;
@@ -185,5 +187,49 @@ pub mod ack_test {
             session_id: 0,
         }));
         assert!(chat_client.acked_packets().get(&0).is_none());
+    }
+
+    /// Test that the fragment is sent again if no ack is received
+    #[test]
+    fn test_ack_not_received() {
+        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let mut neighbors = HashMap::new();
+        neighbors.insert(2 as u8, neighbor.0);
+        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let client_id = 1;
+
+        let mut chat_client = ChatClient::new(
+            client_id,
+            neighbors,
+            channel.1,
+            unbounded().1,
+            unbounded().0,
+        );
+
+        chat_client.topology().add_node(2);
+        chat_client.topology().add_node(21);
+        chat_client.topology().add_edge(2, 21);
+        chat_client.topology().add_edge(1, 2);
+
+        let message = ChatRequest::SendMessage { from: 1, to: 3, message: "Hi".to_string() };
+        let message = ChatRequestWrapper::Chat(message);
+        let message_serialized = serde_json::to_string(&message).unwrap();
+        let fragments =
+            Disassembler::new().disassemble_message(message_serialized.as_bytes().to_vec(), 0);
+
+        let packet = Packet {
+            pack_type: PacketType::MsgFragment(fragments.get(0).unwrap().clone()),
+            routing_header: SourceRoutingHeader {
+                hops: vec![1, 2, 21],
+                hop_index: 1,
+            },
+            session_id: 0,
+        };
+
+        chat_client.send_packet(packet.clone());
+        
+        assert!(matches!(neighbor.1.recv().unwrap().pack_type, PacketType::MsgFragment(_)));
+        thread::sleep(Duration::from_millis(1000));
+        assert!(matches!(neighbor.1.recv().unwrap().pack_type, PacketType::MsgFragment(_)));
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use rustafarian_shared::topology::{compute_route, Topology};
@@ -247,19 +248,24 @@ pub trait Client: Send {
         }
     }
 
-    /// If the ACK is not received in time, resend the packet
-    fn resend_packet_on_timeout(&mut self, packet: Packet, fragment_index: usize) {
+    /// If the ACK is not received in time, resend the packet recomputing the route
+    fn resend_packet_on_timeout(&mut self, mut packet: Packet, fragment_index: usize) {
         let session_id = packet.session_id;
-        let acked_packets_count = self.acked_packets().clone();
-        let sender = self
-            .senders()
-            .get(&packet.routing_header.hops[1])
-            .unwrap()
-            .clone();
-        thread::spawn(move || {
-            thread::sleep(std::time::Duration::from_secs(5));
-            if !acked_packets_count.contains_key(&session_id) {
-                sender.send(packet).unwrap();
+        let destination_id = packet.routing_header.hops[packet.routing_header.len() - 1];
+        let client_id = self.client_id();
+        let new_route = Topology::get_routing_header(&self.topology(), client_id, destination_id);
+        let sender = self.senders().get(&new_route.hops[1]).unwrap().clone();
+        let acked_packets = Arc::new(Mutex::new(self.acked_packets().clone()));
+        packet.routing_header = new_route;
+        thread::spawn({
+            let acked_packets = Arc::clone(&acked_packets);
+            move || {
+                thread::sleep(std::time::Duration::from_millis(
+                    rustafarian_shared::TIMEOUT_TIMER_MS,
+                ));
+                if !acked_packets.lock().unwrap().get(&session_id).unwrap()[fragment_index] {
+                    sender.send(packet).unwrap();
+                }
             }
         });
     }
@@ -273,10 +279,10 @@ pub trait Client: Send {
         let packet_type = message.pack_type.clone();
         match packet_type {
             PacketType::MsgFragment(fragment) => {
-                // self.resend_packet_on_timeout(message.clone(), 0);
                 self.acked_packets()
                     .entry(message.session_id)
                     .or_insert(vec![false; fragment.total_n_fragments as usize]);
+                self.resend_packet_on_timeout(message.clone(), fragment.fragment_index as usize);
             }
             _ => {}
         }
