@@ -5,7 +5,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
-use wg_2024::packet::{Ack, Fragment, Nack, NackType};
+use wg_2024::packet::{Ack, Fragment, Nack, NackType, NodeType};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
@@ -134,15 +134,21 @@ pub trait Client {
         }
     }
 
+    /// When an ACK (Acknowledgment) is received
+    /// Behavior: Increase the count of ACKs received for that session ID by 1. 
+    /// If the count is equal to the number of packets sent with that session ID, remove the session ID from the ACKed packets list
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
-        // self.sent_packets().get_mut();
         // Increase the count of acked packets for this session ID
         self.acked_packets_count()
             .entry(packet.session_id)
             .and_modify(|e| *e += 1)
             .or_insert(1);
         // Get the current count of acked packets for this session ID
-        let acked_packet_count = self.acked_packets_count().get(&packet.session_id).unwrap().clone();
+        let acked_packet_count = self
+            .acked_packets_count()
+            .get(&packet.session_id)
+            .unwrap()
+            .clone();
         // Get the total number of packets with this session id
         let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len();
 
@@ -150,6 +156,22 @@ pub trait Client {
         if acked_packet_count >= sent_packet_count {
             self.sent_packets().remove(&packet.session_id);
             self.acked_packets_count().remove(&packet.session_id);
+        }
+    }
+
+    /// On flood request received: add itself to the request, then forward to all neighbors
+    fn on_flood_request_received(&mut self, packet: Packet, mut request: FloodRequest) {
+        let sender_id = request.path_trace.last().unwrap().0;
+        request.increment(self.client_id(), NodeType::Client);
+        let response = Packet::new_flood_request(
+            SourceRoutingHeader::empty_route(),
+            packet.session_id,
+            request,
+        );
+        for (neighbor_id, sender) in self.senders() {
+            if neighbor_id != &sender_id {
+                sender.send(response.clone()).unwrap();
+            }
         }
     }
 
@@ -179,6 +201,9 @@ pub trait Client {
             }
             PacketType::Ack(ack) => {
                 self.on_ack_received(packet, ack);
+            }
+            PacketType::FloodRequest(request) => {
+                self.on_flood_request_received(packet, request);
             }
             _ => {
                 println!(

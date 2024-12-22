@@ -11,4 +11,5 @@ mod tests {
     mod send_message_test;
     mod ack_test;
     mod nack_test;
+    mod flood_req_test;
 }
