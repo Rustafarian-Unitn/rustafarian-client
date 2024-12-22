@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::thread;
 
 use rustafarian_shared::topology::{compute_route, Topology};
 
@@ -13,7 +14,7 @@ use wg_2024::{
 pub const FRAGMENT_DSIZE: usize = 128;
 
 /// A trait for a client that can send and receive messages
-pub trait Client {
+pub trait Client: Send {
     type RequestType: Request;
     type ResponseType: Response;
     type SimControllerMessage: DroneSend; // Message that can be sent to the sim controller
@@ -42,7 +43,7 @@ pub trait Client {
     /// Contains all the packets sent by the client, in case they need to be sent again
     fn sent_packets(&mut self) -> &mut HashMap<u64, Vec<Packet>>;
     /// Contains the count of all packets with a certain session_id that have been acked
-    fn acked_packets_count(&mut self) -> &mut HashMap<u64, usize>;
+    fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>>;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -135,27 +136,29 @@ pub trait Client {
     }
 
     /// When an ACK (Acknowledgment) is received
-    /// Behavior: Increase the count of ACKs received for that session ID by 1. 
+    /// Behavior: Increase the count of ACKs received for that session ID by 1.
     /// If the count is equal to the number of packets sent with that session ID, remove the session ID from the ACKed packets list
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
         // Increase the count of acked packets for this session ID
-        self.acked_packets_count()
+        self.acked_packets()
             .entry(packet.session_id)
-            .and_modify(|e| *e += 1)
-            .or_insert(1);
+            .or_insert(Vec::new())
+            .insert(ack.fragment_index as usize, true);
         // Get the current count of acked packets for this session ID
         let acked_packet_count = self
-            .acked_packets_count()
+            .acked_packets()
             .get(&packet.session_id)
             .unwrap()
-            .clone();
+            .iter()
+            .filter(|x| **x)
+            .count();
         // Get the total number of packets with this session id
         let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len();
 
         // If all packets have received the acknowledgment
         if acked_packet_count >= sent_packet_count {
             self.sent_packets().remove(&packet.session_id);
-            self.acked_packets_count().remove(&packet.session_id);
+            self.acked_packets().remove(&packet.session_id);
         }
     }
 
@@ -244,12 +247,39 @@ pub trait Client {
         }
     }
 
+    /// If the ACK is not received in time, resend the packet
+    fn resend_packet_on_timeout(&mut self, packet: Packet, fragment_index: usize) {
+        let session_id = packet.session_id;
+        let acked_packets_count = self.acked_packets().clone();
+        let sender = self
+            .senders()
+            .get(&packet.routing_header.hops[1])
+            .unwrap()
+            .clone();
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_secs(5));
+            if !acked_packets_count.contains_key(&session_id) {
+                sender.send(packet).unwrap();
+            }
+        });
+    }
+
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
         self.sent_packets()
             .entry(message.session_id)
             .or_insert(Vec::new())
             .push(message.clone());
+        let packet_type = message.pack_type.clone();
+        match packet_type {
+            PacketType::MsgFragment(fragment) => {
+                // self.resend_packet_on_timeout(message.clone(), 0);
+                self.acked_packets()
+                    .entry(message.session_id)
+                    .or_insert(vec![false; fragment.total_n_fragments as usize]);
+            }
+            _ => {}
+        }
         let drone_id = message.routing_header.hops[1];
         match self.senders().get(&drone_id) {
             Some(sender) => {

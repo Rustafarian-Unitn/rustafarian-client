@@ -161,7 +161,7 @@ pub mod ack_test {
 
         chat_client.on_drone_packet_received(Ok(Packet {
             pack_type: PacketType::Ack(Ack {
-                fragment_index: 0,
+                fragment_index: 1,
             }),
             routing_header: SourceRoutingHeader {
                 hops: vec![21, 2, 1],
@@ -171,6 +171,19 @@ pub mod ack_test {
         }));
 
         assert!(chat_client.sent_packets().contains_key(&0));
-        assert_eq!(chat_client.acked_packets_count().get(&0).unwrap(), &1);
+        assert_eq!(chat_client.acked_packets().get(&0).unwrap(), &vec![false, true]);
+
+        
+        chat_client.on_drone_packet_received(Ok(Packet {
+            pack_type: PacketType::Ack(Ack {
+                fragment_index: 0,
+            }),
+            routing_header: SourceRoutingHeader {
+                hops: vec![21, 2, 1],
+                hop_index: 1,
+            },
+            session_id: 0,
+        }));
+        assert!(chat_client.acked_packets().get(&0).is_none());
     }
 }

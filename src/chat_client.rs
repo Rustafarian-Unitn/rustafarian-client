@@ -19,7 +19,7 @@ pub struct ChatClient {
     sim_controller_receiver: Receiver<SimControllerCommand>,
     sim_controller_sender: Sender<SimControllerResponseWrapper>,
     sent_packets: HashMap<u64, Vec<Packet>>,
-    acked_packets: HashMap<u64, usize>,
+    acked_packets: HashMap<u64, Vec<bool>>,
     available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
     assembler: Assembler,
     disassembler: Disassembler,
@@ -169,7 +169,7 @@ impl Client for ChatClient {
         }
     }
     
-    fn acked_packets_count(&mut self) -> &mut HashMap<u64, usize> {
+    fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>> {
         &mut self.acked_packets
     }
 }
