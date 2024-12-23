@@ -1,8 +1,5 @@
 #[cfg(test)]
 pub mod server_type_test {
-    use std::collections::HashMap;
-
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::assembler::Assembler;
     use rustafarian_shared::messages::general_messages::{
         ServerType, ServerTypeRequest, ServerTypeResponse,
@@ -15,28 +12,13 @@ pub mod server_type_test {
         assembler::disassembler::Disassembler, messages::chat_messages::ChatRequestWrapper,
     };
 
-    use crate::{chat_client::ChatClient, client::Client};
+    use crate::tests::util;
+    use crate::client::Client;
 
     #[test]
     fn test_server_type_request() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         chat_client.send_server_type_request(21);
 
@@ -61,24 +43,8 @@ pub mod server_type_test {
 
     #[test]
     fn test_server_type_response() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, _neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let server_type_response =
             ChatResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Chat));

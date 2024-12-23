@@ -7,7 +7,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::general_messages::{
-    DroneSend, Message, Request, Response, ServerTypeRequest,
+    DroneSend, Message, Request, Response,
 };
 use wg_2024::packet::{Ack, Fragment, Nack, NackType, NodeType};
 use wg_2024::{
@@ -213,12 +213,6 @@ pub trait Client: Send {
             PacketType::FloodRequest(request) => {
                 self.on_flood_request_received(packet, request);
             }
-            _ => {
-                println!(
-                    "Client {} received an unsupported packet type",
-                    self.client_id()
-                );
-            }
         }
     }
 
@@ -356,7 +350,7 @@ pub trait Client: Send {
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
-        for (client_id, sender) in self.senders() {
+        for (_client_id, sender) in self.senders() {
             let packet = Packet {
                 pack_type: PacketType::FloodRequest(FloodRequest {
                     initiator_id: self.client_id(),

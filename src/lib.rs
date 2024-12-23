@@ -3,6 +3,8 @@ pub mod client;
 
 #[cfg(test)]
 mod tests {
+    mod util;
+    
     mod ack_test;
     mod controller_test;
     mod flood_req_test;
@@ -15,4 +17,5 @@ mod tests {
     mod server_type_test;
     mod test_channels;
     mod error_tests;
+    mod test_running;
 }

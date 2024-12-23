@@ -1,39 +1,21 @@
 #[cfg(test)]
 pub mod register_test {
-    use std::collections::HashMap;
-
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::assembler::Assembler;
     use rustafarian_shared::messages::chat_messages::ChatRequest;
-    use wg_2024::packet::{Fragment, Packet, PacketType};
+    use wg_2024::packet::{Fragment, PacketType};
 
-    use crate::{chat_client::ChatClient, client::Client};
+    use crate::{client::Client, tests::util};
 
     #[test]
     fn simple_register() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
+
         let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
         let register_request = ChatRequest::Register(client_id);
         let register_serialized = serde_json::to_string(&register_request).unwrap();
 
         // let mut fragments = disassembler.disassemble_message(register_serialized.as_bytes().to_vec(), 0);
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
 
         chat_client.send_message(21, register_serialized.clone());
 

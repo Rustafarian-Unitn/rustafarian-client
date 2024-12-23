@@ -1,10 +1,8 @@
 #[cfg(test)]
 pub mod ack_test {
-    use std::collections::HashMap;
     use std::thread;
     use std::time::Duration;
 
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::disassembler::Disassembler;
     use rustafarian_shared::messages::chat_messages::ChatResponse;
     use rustafarian_shared::messages::chat_messages::{
@@ -16,29 +14,14 @@ pub mod ack_test {
         packet::{Packet, PacketType},
     };
 
-    use crate::{chat_client::ChatClient, client::Client};
+    use crate::client::Client;
+    use crate::tests::util;
 
     /// Test that the client is sending the ACK when receiving a fragment
     #[test]
     fn test_ack_sent_on_fragment_received() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let message = ChatResponse::MessageFrom {
             from: 3,
@@ -67,24 +50,12 @@ pub mod ack_test {
     /// Tests that the client adds the packet sent to the list, and removes it when receiving the ACK from the server
     #[test]
     fn test_ack_sent_packet_added_to_list() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let message = ChatRequest::SendMessage {
             from: 1,
@@ -125,24 +96,12 @@ pub mod ack_test {
     /// but the fragments are not removed
     #[test]
     fn test_ack_sent_2() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let message = ChatRequest::SendMessage {
             from: 1,
@@ -196,24 +155,8 @@ pub mod ack_test {
     /// Test that the fragment is sent again if no ack is received
     #[test]
     fn test_ack_not_received() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let message = ChatRequest::SendMessage {
             from: 1,

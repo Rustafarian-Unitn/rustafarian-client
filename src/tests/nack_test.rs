@@ -1,39 +1,20 @@
 #[cfg(test)]
 pub mod nack_test {
-    use std::collections::HashMap;
-
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::packet::Nack;
     use wg_2024::{
         network::SourceRoutingHeader,
         packet::{Fragment, Packet, PacketType},
     };
 
-    use crate::chat_client::ChatClient;
     use crate::client::Client;
+    use crate::tests::util;
 
     /// Test that the client is sending a flood request when reveiving a nack
     #[test]
     fn test_flood_request_sent_on_nack_received() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
-
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
+            
         chat_client.sent_packets().insert(0, vec![]);
         chat_client
             .sent_packets()

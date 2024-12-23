@@ -1,8 +1,5 @@
 #[cfg(test)]
 pub mod send_message_test {
-    use std::collections::HashMap;
-
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use wg_2024::network::SourceRoutingHeader;
     use wg_2024::packet::{Packet, PacketType};
 
@@ -11,35 +8,19 @@ pub mod send_message_test {
         ChatRequest, ChatResponse, ChatResponseWrapper,
     };
 
-    use crate::{chat_client::ChatClient, client::Client};
+    use crate::tests::util;
+    use crate::client::Client;
 
     #[test]
     fn simple_send_message() {
         let message = "Hello, world".to_string();
-
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         chat_client.send_chat_message(21, 3, message.clone());
 
         let message_req = ChatRequest::SendMessage {
-            from: client_id,
+            from: 1,
             to: 3,
             message,
         };
@@ -62,29 +43,13 @@ pub mod send_message_test {
     fn send_longer_message() {
         let message = "Hello, world".repeat(300).to_string();
 
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         chat_client.send_chat_message(21, 3, message.clone());
 
         let message_req = ChatRequest::SendMessage {
-            from: client_id,
+            from: 1,
             to: 3,
             message,
         };
@@ -107,23 +72,8 @@ pub mod send_message_test {
 
     #[test]
     fn test_message_sent() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            unbounded().1,
-            unbounded().0,
-        );
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, _neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let message = ChatResponse::MessageSent {};
         let message = ChatResponseWrapper::Chat(message);

@@ -1,36 +1,23 @@
 #[cfg(test)]
 pub mod controller_test {
-    use std::collections::HashMap;
-
-    use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::assembler::Assembler;
     use rustafarian_shared::messages::chat_messages::ChatRequest;
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
-    use wg_2024::packet::{Packet, PacketType};
+    use wg_2024::packet::PacketType;
 
-    use crate::chat_client::ChatClient;
     use crate::client::Client;
+    use crate::tests::util;
 
     #[test]
     fn flood_request_command() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let controller_channel_commands = unbounded();
-        let controller_channel_messages = unbounded();
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            controller_channel_commands.1,
-            controller_channel_messages.0,
-        );
+        let (
+            mut chat_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let flood_command = SimControllerCommand::FloodRequest;
 
@@ -46,27 +33,12 @@ pub mod controller_test {
 
     #[test]
     fn register_command() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let controller_channel_commands = unbounded();
-        let controller_channel_messages = unbounded();
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            controller_channel_commands.1,
-            controller_channel_messages.0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (
+            mut chat_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let register_command = SimControllerCommand::Register(21);
 
@@ -92,27 +64,8 @@ pub mod controller_test {
 
     #[test]
     fn client_list_command() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let controller_channel_commands = unbounded();
-        let controller_channel_messages = unbounded();
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            controller_channel_commands.1,
-            controller_channel_messages.0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let client_list_command = SimControllerCommand::ClientList(21);
 
@@ -138,27 +91,8 @@ pub mod controller_test {
 
     #[test]
     fn send_message_command() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let controller_channel_commands = unbounded();
-        let controller_channel_messages = unbounded();
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            controller_channel_commands.1,
-            controller_channel_messages.0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let message = "Hello, world".to_string();
 
@@ -186,34 +120,15 @@ pub mod controller_test {
             ChatRequest::SendMessage {
                 to: 2,
                 from: 1,
-                message
+                message: _
             }
         ));
     }
 
     #[test]
     fn topology_request() {
-        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let mut neighbors = HashMap::new();
-        neighbors.insert(2 as u8, neighbor.0);
-        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
-        let client_id = 1;
-
-        let controller_channel_commands = unbounded();
-        let controller_channel_messages = unbounded();
-
-        let mut chat_client = ChatClient::new(
-            client_id,
-            neighbors,
-            channel.1,
-            controller_channel_commands.1,
-            controller_channel_messages.0,
-        );
-
-        chat_client.topology().add_node(2);
-        chat_client.topology().add_node(21);
-        chat_client.topology().add_edge(2, 21);
-        chat_client.topology().add_edge(1, 2);
+        let (mut chat_client, _neighbor, _controller_channel_commands, controller_channel_messages) =
+            util::build_client();
 
         let topology_request = SimControllerCommand::Topology;
 
