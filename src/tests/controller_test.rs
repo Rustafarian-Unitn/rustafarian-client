@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod controller_test {
     use rustafarian_shared::assembler::assembler::Assembler;
-    use rustafarian_shared::messages::chat_messages::ChatRequest;
+    use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatRequestWrapper};
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
@@ -12,12 +12,8 @@ pub mod controller_test {
 
     #[test]
     fn flood_request_command() {
-        let (
-            mut chat_client,
-            neighbor,
-            _controller_channel_commands,
-            _controller_channel_messages,
-        ) = util::build_client();
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let flood_command = SimControllerCommand::FloodRequest;
 
@@ -33,12 +29,8 @@ pub mod controller_test {
 
     #[test]
     fn register_command() {
-        let (
-            mut chat_client,
-            neighbor,
-            _controller_channel_commands,
-            _controller_channel_messages,
-        ) = util::build_client();
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let register_command = SimControllerCommand::Register(21);
 
@@ -55,11 +47,15 @@ pub mod controller_test {
             .add_fragment(fragment, received_packet.session_id)
             .unwrap();
 
-        let parsed_message =
-            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
-                .unwrap();
+        let parsed_message = serde_json::from_str::<ChatRequestWrapper>(
+            std::str::from_utf8(&constructed_message).unwrap(),
+        )
+        .unwrap();
 
-        assert!(matches!(parsed_message, ChatRequest::Register(1)));
+        assert!(matches!(
+            parsed_message,
+            ChatRequestWrapper::Chat(ChatRequest::Register(1))
+        ));
     }
 
     #[test]
@@ -82,11 +78,15 @@ pub mod controller_test {
             .add_fragment(fragment, received_packet.session_id)
             .unwrap();
 
-        let parsed_message =
-            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
-                .unwrap();
+        let parsed_message = serde_json::from_str::<ChatRequestWrapper>(
+            std::str::from_utf8(&constructed_message).unwrap(),
+        )
+        .unwrap();
 
-        assert!(matches!(parsed_message, ChatRequest::ClientList));
+        assert!(matches!(
+            parsed_message,
+            ChatRequestWrapper::Chat(ChatRequest::ClientList)
+        ));
     }
 
     #[test]
@@ -111,17 +111,18 @@ pub mod controller_test {
             .add_fragment(fragment, received_packet.session_id)
             .unwrap();
 
-        let parsed_message =
-            serde_json::from_str::<ChatRequest>(std::str::from_utf8(&constructed_message).unwrap())
-                .unwrap();
+        let parsed_message = serde_json::from_str::<ChatRequestWrapper>(
+            std::str::from_utf8(&constructed_message).unwrap(),
+        )
+        .unwrap();
 
         assert!(matches!(
             parsed_message,
-            ChatRequest::SendMessage {
+            ChatRequestWrapper::Chat(ChatRequest::SendMessage {
                 to: 2,
                 from: 1,
                 message: _
-            }
+            })
         ));
     }
 

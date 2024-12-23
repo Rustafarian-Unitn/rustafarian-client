@@ -5,11 +5,11 @@ pub mod send_message_test {
 
     use rustafarian_shared::assembler::disassembler::Disassembler;
     use rustafarian_shared::messages::chat_messages::{
-        ChatRequest, ChatResponse, ChatResponseWrapper,
+        ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper,
     };
 
-    use crate::tests::util;
     use crate::client::Client;
+    use crate::tests::util;
 
     #[test]
     fn simple_send_message() {
@@ -24,7 +24,8 @@ pub mod send_message_test {
             to: 3,
             message,
         };
-        let serialized_message = serde_json::to_string(&message_req).unwrap();
+        let serialized_message =
+            serde_json::to_string(&ChatRequestWrapper::Chat(message_req)).unwrap();
 
         let fragments =
             Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);
@@ -53,7 +54,7 @@ pub mod send_message_test {
             to: 3,
             message,
         };
-        let serialized_message = serde_json::to_string(&message_req).unwrap();
+        let serialized_message = serde_json::to_string(&ChatRequestWrapper::Chat(message_req)).unwrap();
 
         let fragments =
             Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);
@@ -72,8 +73,12 @@ pub mod send_message_test {
 
     #[test]
     fn test_message_sent() {
-        let (mut chat_client, _neighbor, _controller_channel_commands, _controller_channel_messages) =
-            util::build_client();
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let message = ChatResponse::MessageSent {};
         let message = ChatResponseWrapper::Chat(message);

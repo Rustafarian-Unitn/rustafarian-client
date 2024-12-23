@@ -59,24 +59,24 @@ impl ChatClient {
 
     /// Send a 'register' message to a server
     pub fn register(&mut self, server_id: NodeId) -> () {
-        let request = ChatRequest::Register(self.client_id);
+        let request = ChatRequestWrapper::Chat(ChatRequest::Register(self.client_id));
         let request_json = serde_json::to_string(&request).unwrap();
         self.send_message(server_id, request_json);
     }
 
     pub fn send_chat_message(&mut self, server_id: NodeId, to: NodeId, message: String) {
-        let chat_message = ChatRequest::SendMessage {
+        let chat_message = ChatRequestWrapper::Chat(ChatRequest::SendMessage {
             from: self.client_id,
             to,
             message,
-        };
+        });
         let chat_message_json = serde_json::to_string(&chat_message).unwrap();
 
         self.send_message(server_id, chat_message_json);
     }
 
     pub fn send_client_list_req(&mut self, server_id: NodeId) {
-        let request = ChatRequest::ClientList;
+        let request = ChatRequestWrapper::Chat(ChatRequest::ClientList);
         let request_json = serde_json::to_string(&request).unwrap();
         self.send_message(server_id, request_json);
     }
@@ -161,6 +161,7 @@ impl Client for ChatClient {
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
         match command {
             SimControllerCommand::SendMessage(message, server_id, to) => {
+                println!("Sending message to {} using {}", to, server_id);
                 self.send_chat_message(server_id, to, message);
             }
             SimControllerCommand::Register(server_id) => {
