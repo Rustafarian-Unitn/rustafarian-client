@@ -252,6 +252,14 @@ pub trait Client: Send {
 
     /// Run the client, listening for incoming messages
     fn run(&mut self, mut ticks: u64) {
+        if self.topology().edges().len() == 0 {
+            let senders = self.senders().clone();
+            let client_id = self.client_id();
+            for (sender_id, _channel) in senders {
+                self.topology().add_node(sender_id);
+                self.topology().add_edge(client_id, sender_id);
+            }
+        }
         println!("Client {} running", self.client_id());
         *self.running() = true;
         while ticks > 0 {
