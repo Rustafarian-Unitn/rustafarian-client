@@ -268,7 +268,20 @@ pub trait Client: Send {
                     rustafarian_shared::TIMEOUT_TIMER_MS,
                 ));
                 if !acked_packets.lock().unwrap().get(&session_id).unwrap()[fragment_index] {
-                    sender.send(packet).unwrap();
+                    match sender.send(packet) {
+                        Ok(_) => {
+                            println!(
+                                "Client {}: Resending packet with session_id: {}",
+                                client_id, session_id
+                            );
+                        }
+                        Err(err) => {
+                            eprintln!(
+                                "Client {}: Error resending packet with session_id: {} - {:?}",
+                                client_id, session_id, err
+                            );
+                        }
+                    }
                 }
             }
         });
