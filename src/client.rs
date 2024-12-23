@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use rustafarian_shared::messages::commander_messages::{
+    SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
+};
 use rustafarian_shared::topology::{compute_route, Topology};
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
@@ -19,7 +22,6 @@ pub static mut DEBUG: bool = false;
 pub trait Client: Send {
     type RequestType: Request;
     type ResponseType: Response;
-    type SimControllerMessage: DroneSend; // Message that can be sent to the sim controller
     type SimControllerCommand: DroneSend; // Commands received from the simcontroller
 
     /// Returns the client id
@@ -37,7 +39,7 @@ pub trait Client: Send {
     /// The channel where the simulation controller can send messages
     fn sim_controller_receiver(&self) -> &Receiver<Self::SimControllerCommand>;
     /// The channel where the simulation controller can receive messages
-    fn sim_controller_sender(&self) -> &Sender<Self::SimControllerMessage>;
+    fn sim_controller_sender(&self) -> &Sender<SimControllerResponseWrapper>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType, sender_id: NodeId);
     /// Handle a command received from the simulation controller
@@ -212,6 +214,13 @@ pub trait Client: Send {
             return;
         }
         let packet = packet.unwrap();
+        // Notify the simulation controller that a packet has been received
+        let _res = self
+            .sim_controller_sender()
+            .send(SimControllerResponseWrapper::Event(
+                SimControllerEvent::PacketReceived(packet.session_id),
+            ));
+
         let packet_type = packet.pack_type.clone();
         match packet_type {
             // Handle text fragment

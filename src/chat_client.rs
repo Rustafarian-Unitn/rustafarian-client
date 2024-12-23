@@ -111,7 +111,6 @@ impl ChatClient {
 impl Client for ChatClient {
     type RequestType = ChatRequest;
     type ResponseType = ChatResponseWrapper;
-    type SimControllerMessage = SimControllerResponseWrapper;
     type SimControllerCommand = SimControllerCommand;
 
     fn client_id(&self) -> u8 {

@@ -30,7 +30,7 @@ pub mod test_running {
             neighbors,
             channel.1,
             controller_channel_commands.1,
-            controller_channel_messages.0
+            controller_channel_messages.0,
         );
 
         chat_client.topology().add_node(2);
@@ -63,6 +63,7 @@ pub mod test_running {
         });
 
         channel.0.send(fake_packet).unwrap();
+        let _pack_received_event = controller_channel_messages.1.recv().unwrap();
         let sim_received = controller_channel_messages.1.recv().unwrap();
         assert!(matches!(
             sim_received,
@@ -121,11 +122,7 @@ pub mod test_running {
         {
             Ok(wrapper) => match wrapper {
                 ChatRequestWrapper::Chat(request) => match request {
-                    ChatRequest::SendMessage {
-                        from,
-                        to,
-                        message,
-                    } => (message, from, to),
+                    ChatRequest::SendMessage { from, to, message } => (message, from, to),
                     _ => panic!("Message should be SendMessage"),
                 },
                 _ => panic!("Message should be SendMessage"),
