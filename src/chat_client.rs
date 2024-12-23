@@ -7,7 +7,7 @@ use rustafarian_shared::messages::chat_messages::{
     ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper,
 };
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
+    SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
 use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
 use rustafarian_shared::topology::Topology;
@@ -50,7 +50,7 @@ impl ChatClient {
             available_clients: HashMap::new(),
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
-            running: false
+            running: false,
         }
     }
 
@@ -74,7 +74,13 @@ impl ChatClient {
         });
         let chat_message_json = serde_json::to_string(&chat_message).unwrap();
 
-        self.send_message(server_id, chat_message_json);
+        self.send_message(server_id, chat_message_json.clone());
+
+        let _res = self
+            .sim_controller_sender
+            .send(SimControllerResponseWrapper::Event(
+                SimControllerEvent::MessageSent(server_id, to, chat_message_json),
+            ));
     }
 
     pub fn send_client_list_req(&mut self, server_id: NodeId) {
@@ -195,7 +201,7 @@ impl Client for ChatClient {
         let request_json = request_wrapped.stringify();
         self.send_message(server_id, request_json);
     }
-    
+
     fn running(&mut self) -> &mut bool {
         &mut self.running
     }

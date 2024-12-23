@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
+    SimControllerEvent, SimControllerResponseWrapper,
 };
 use rustafarian_shared::topology::{compute_route, Topology};
 
