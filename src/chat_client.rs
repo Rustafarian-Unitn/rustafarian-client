@@ -1,3 +1,4 @@
+use core::str;
 use std::collections::HashMap;
 
 use crate::client::Client;
@@ -87,7 +88,16 @@ impl ChatClient {
                 self.available_clients.insert(server_id, client_list);
             }
             ChatResponse::MessageFrom { from, message } => {
-                println!("Message from {}: {:?}", from, message);
+                let s = match str::from_utf8(message.as_ref()) {
+                    Ok(v) => v,
+                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                };
+                println!("Message from {}: {:?}", from, s);
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(
+                        SimControllerMessage::MessageReceived(server_id, from, s.to_string()),
+                    ));
             }
             ChatResponse::MessageSent => {
                 println!("Message sent");
