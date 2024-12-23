@@ -407,5 +407,10 @@ pub trait Client: Send {
             };
             sender.send(packet).unwrap();
         }
+        self.sim_controller_sender()
+            .send(SimControllerResponseWrapper::Event(
+                SimControllerEvent::FloodRequestSent,
+            ))
+            .unwrap();
     }
 }
