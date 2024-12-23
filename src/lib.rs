@@ -14,4 +14,5 @@ mod tests {
     mod send_message_test;
     mod server_type_test;
     mod test_channels;
+    mod error_tests;
 }

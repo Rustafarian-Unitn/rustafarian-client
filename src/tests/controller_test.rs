@@ -1,7 +1,6 @@
 #[cfg(test)]
 pub mod controller_test {
     use std::collections::HashMap;
-    use std::mem;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::assembler::Assembler;
@@ -9,7 +8,6 @@ pub mod controller_test {
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
-    use rustafarian_shared::messages::general_messages::Message;
     use wg_2024::packet::{Packet, PacketType};
 
     use crate::chat_client::ChatClient;
@@ -166,7 +164,7 @@ pub mod controller_test {
 
         let send_message_command = SimControllerCommand::SendMessage(message.clone(), 21, 2);
 
-        chat_client.handle_controller_commands(send_message_command);
+        chat_client.handle_sim_controller_packets(Ok(send_message_command));
 
         let received_packet = neighbor.1.recv().unwrap();
 
@@ -219,7 +217,7 @@ pub mod controller_test {
 
         let topology_request = SimControllerCommand::Topology;
 
-        chat_client.handle_controller_commands(topology_request);
+        chat_client.handle_sim_controller_packets(Ok(topology_request));
 
         let received_packet = controller_channel_messages.1.recv().unwrap();
 
