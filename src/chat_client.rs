@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper};
+use rustafarian_shared::messages::chat_messages::{
+    ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper,
+};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
@@ -61,10 +63,10 @@ impl ChatClient {
         self.send_message(server_id, request_json);
     }
 
-    pub fn send_chat_message(&mut self, server_id: NodeId, message: String) {
+    pub fn send_chat_message(&mut self, server_id: NodeId, to: NodeId, message: String) {
         let chat_message = ChatRequest::SendMessage {
             from: self.client_id,
-            to: server_id,
+            to,
             message,
         };
         let chat_message_json = serde_json::to_string(&chat_message).unwrap();
@@ -149,7 +151,7 @@ impl Client for ChatClient {
     fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
         match command {
             SimControllerCommand::SendMessage(message, server_id, to) => {
-                self.send_chat_message(to, message);
+                self.send_chat_message(server_id, to, message);
             }
             SimControllerCommand::Register(server_id) => {
                 self.register(server_id);
@@ -170,11 +172,11 @@ impl Client for ChatClient {
             _ => {}
         }
     }
-    
+
     fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>> {
         &mut self.acked_packets
     }
-    
+
     fn send_server_type_request(&mut self, server_id: NodeId) {
         let request = ServerTypeRequest::ServerType;
         let request_wrapped = ChatRequestWrapper::ServerType(request);

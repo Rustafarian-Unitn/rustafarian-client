@@ -6,8 +6,10 @@ pub mod send_message_test {
     use wg_2024::network::SourceRoutingHeader;
     use wg_2024::packet::{Packet, PacketType};
 
-    use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper};
     use rustafarian_shared::assembler::disassembler::Disassembler;
+    use rustafarian_shared::messages::chat_messages::{
+        ChatRequest, ChatResponse, ChatResponseWrapper,
+    };
 
     use crate::{chat_client::ChatClient, client::Client};
 
@@ -34,11 +36,11 @@ pub mod send_message_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        chat_client.send_chat_message(21, message.clone());
+        chat_client.send_chat_message(21, 3, message.clone());
 
         let message_req = ChatRequest::SendMessage {
             from: client_id,
-            to: 21,
+            to: 3,
             message,
         };
         let serialized_message = serde_json::to_string(&message_req).unwrap();
@@ -79,11 +81,11 @@ pub mod send_message_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        chat_client.send_chat_message(21, message.clone());
+        chat_client.send_chat_message(21, 3, message.clone());
 
         let message_req = ChatRequest::SendMessage {
             from: client_id,
-            to: 21,
+            to: 3,
             message,
         };
         let serialized_message = serde_json::to_string(&message_req).unwrap();

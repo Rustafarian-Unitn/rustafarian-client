@@ -3,10 +3,7 @@ pub mod flooding_test {
     use std::collections::HashMap;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use wg_2024::{
-        network::SourceRoutingHeader,
-        packet::{FloodRequest, FloodResponse, NodeType, Packet, PacketType},
-    };
+    use wg_2024::packet::{FloodResponse, NodeType, Packet, PacketType};
 
     use crate::{chat_client::ChatClient, client::Client};
 
@@ -19,23 +16,7 @@ pub mod flooding_test {
         let mut chat_client =
             ChatClient::new(1, neighbors, channel.1, unbounded().1, unbounded().0);
 
-        // thread::spawn(move || {
-        //     chat_client.run();
-        // });
         chat_client.send_flood_request();
-
-        let packet = Packet {
-            pack_type: PacketType::FloodRequest(FloodRequest {
-                initiator_id: 1,
-                flood_id: rand::random(),
-                path_trace: Vec::new(),
-            }),
-            session_id: rand::random(),
-            routing_header: SourceRoutingHeader {
-                hop_index: 1,
-                hops: Vec::new(),
-            },
-        };
 
         assert!(
             matches!(

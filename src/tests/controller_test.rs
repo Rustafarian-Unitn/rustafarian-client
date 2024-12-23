@@ -1,15 +1,16 @@
 #[cfg(test)]
 pub mod controller_test {
     use std::collections::HashMap;
+    use std::mem;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use rustafarian_shared::assembler::disassembler;
-    use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
+    use rustafarian_shared::assembler::assembler::Assembler;
     use rustafarian_shared::messages::chat_messages::ChatRequest;
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
-    use wg_2024::packet::{Fragment, Packet, PacketType};
+    use rustafarian_shared::messages::general_messages::Message;
+    use wg_2024::packet::{Packet, PacketType};
 
     use crate::chat_client::ChatClient;
     use crate::client::Client;

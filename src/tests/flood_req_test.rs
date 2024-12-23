@@ -4,15 +4,11 @@ pub mod flood_req_test {
     use std::time::Duration;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use rustafarian_shared::assembler::disassembler::Disassembler;
-    use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatRequestWrapper, ChatResponseWrapper};
-    use rustafarian_shared::{
-        assembler::assembler::Assembler, messages::chat_messages::ChatResponse,
-    };
-    use wg_2024::packet::{Ack, FloodRequest, NodeType};
+
+    use wg_2024::packet::{FloodRequest, NodeType};
     use wg_2024::{
         network::SourceRoutingHeader,
-        packet::{Fragment, Packet, PacketType},
+        packet::{Packet, PacketType},
     };
 
     use crate::chat_client::ChatClient;
@@ -66,13 +62,23 @@ pub mod flood_req_test {
         assert_eq!(packet_received.is_err(), true);
 
         // assert!(matches!(packet_received.pack_type, PacketType::FloodRequest(_)));
-        assert!(matches!(packet_received2.pack_type, PacketType::FloodRequest(_)));
+        assert!(matches!(
+            packet_received2.pack_type,
+            PacketType::FloodRequest(_)
+        ));
 
         let flood_req = match packet_received2.pack_type {
             PacketType::FloodRequest(flood_req) => flood_req,
             _ => panic!("Expected FloodRequest"),
         };
 
-        assert_eq!(flood_req.path_trace, vec![(21, NodeType::Server), (2, NodeType::Drone), (1, NodeType::Client)]);
+        assert_eq!(
+            flood_req.path_trace,
+            vec![
+                (21, NodeType::Server),
+                (2, NodeType::Drone),
+                (1, NodeType::Client)
+            ]
+        );
     }
 }

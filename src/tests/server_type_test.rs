@@ -10,9 +10,7 @@ pub mod server_type_test {
     use wg_2024::network::SourceRoutingHeader;
     use wg_2024::packet::{Packet, PacketType};
 
-    use rustafarian_shared::messages::chat_messages::{
-        ChatRequest, ChatResponse, ChatResponseWrapper,
-    };
+    use rustafarian_shared::messages::chat_messages::ChatResponseWrapper;
     use rustafarian_shared::{
         assembler::disassembler::Disassembler, messages::chat_messages::ChatRequestWrapper,
     };

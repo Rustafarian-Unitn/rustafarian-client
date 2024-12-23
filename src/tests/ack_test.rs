@@ -6,14 +6,14 @@ pub mod ack_test {
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::disassembler::Disassembler;
-    use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatRequestWrapper, ChatResponseWrapper};
-    use rustafarian_shared::{
-        assembler::assembler::Assembler, messages::chat_messages::ChatResponse,
+    use rustafarian_shared::messages::chat_messages::ChatResponse;
+    use rustafarian_shared::messages::chat_messages::{
+        ChatRequest, ChatRequestWrapper, ChatResponseWrapper,
     };
     use wg_2024::packet::Ack;
     use wg_2024::{
         network::SourceRoutingHeader,
-        packet::{Fragment, Packet, PacketType},
+        packet::{Packet, PacketType},
     };
 
     use crate::{chat_client::ChatClient, client::Client};
@@ -86,7 +86,11 @@ pub mod ack_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        let message = ChatRequest::SendMessage { from: 1, to: 3, message: "Hi".to_string() };
+        let message = ChatRequest::SendMessage {
+            from: 1,
+            to: 3,
+            message: "Hi".to_string(),
+        };
         let message = ChatRequestWrapper::Chat(message);
         let message_serialized = serde_json::to_string(&message).unwrap();
         let fragments =
@@ -105,9 +109,7 @@ pub mod ack_test {
         assert!(chat_client.sent_packets().contains_key(&0));
 
         chat_client.on_drone_packet_received(Ok(Packet {
-            pack_type: PacketType::Ack(Ack {
-                fragment_index: 0,
-            }),
+            pack_type: PacketType::Ack(Ack { fragment_index: 0 }),
             routing_header: SourceRoutingHeader {
                 hops: vec![21, 2, 1],
                 hop_index: 1,
@@ -142,7 +144,11 @@ pub mod ack_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        let message = ChatRequest::SendMessage { from: 1, to: 3, message: "Hi".to_string() };
+        let message = ChatRequest::SendMessage {
+            from: 1,
+            to: 3,
+            message: "Hi".to_string(),
+        };
         let message = ChatRequestWrapper::Chat(message);
         let message_serialized = serde_json::to_string(&message).unwrap();
         let fragments =
@@ -162,9 +168,7 @@ pub mod ack_test {
         assert!(chat_client.sent_packets().contains_key(&0));
 
         chat_client.on_drone_packet_received(Ok(Packet {
-            pack_type: PacketType::Ack(Ack {
-                fragment_index: 1,
-            }),
+            pack_type: PacketType::Ack(Ack { fragment_index: 1 }),
             routing_header: SourceRoutingHeader {
                 hops: vec![21, 2, 1],
                 hop_index: 1,
@@ -173,13 +177,13 @@ pub mod ack_test {
         }));
 
         assert!(chat_client.sent_packets().contains_key(&0));
-        assert_eq!(chat_client.acked_packets().get(&0).unwrap(), &vec![false, true]);
+        assert_eq!(
+            chat_client.acked_packets().get(&0).unwrap(),
+            &vec![false, true]
+        );
 
-        
         chat_client.on_drone_packet_received(Ok(Packet {
-            pack_type: PacketType::Ack(Ack {
-                fragment_index: 0,
-            }),
+            pack_type: PacketType::Ack(Ack { fragment_index: 0 }),
             routing_header: SourceRoutingHeader {
                 hops: vec![21, 2, 1],
                 hop_index: 1,
@@ -211,7 +215,11 @@ pub mod ack_test {
         chat_client.topology().add_edge(2, 21);
         chat_client.topology().add_edge(1, 2);
 
-        let message = ChatRequest::SendMessage { from: 1, to: 3, message: "Hi".to_string() };
+        let message = ChatRequest::SendMessage {
+            from: 1,
+            to: 3,
+            message: "Hi".to_string(),
+        };
         let message = ChatRequestWrapper::Chat(message);
         let message_serialized = serde_json::to_string(&message).unwrap();
         let fragments =
@@ -227,9 +235,15 @@ pub mod ack_test {
         };
 
         chat_client.send_packet(packet.clone());
-        
-        assert!(matches!(neighbor.1.recv().unwrap().pack_type, PacketType::MsgFragment(_)));
+
+        assert!(matches!(
+            neighbor.1.recv().unwrap().pack_type,
+            PacketType::MsgFragment(_)
+        ));
         thread::sleep(Duration::from_millis(1000));
-        assert!(matches!(neighbor.1.recv().unwrap().pack_type, PacketType::MsgFragment(_)));
+        assert!(matches!(
+            neighbor.1.recv().unwrap().pack_type,
+            PacketType::MsgFragment(_)
+        ));
     }
 }
