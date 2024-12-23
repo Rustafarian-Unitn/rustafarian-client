@@ -6,7 +6,7 @@ use rustafarian_shared::topology::{compute_route, Topology};
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
+use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response, ServerTypeRequest};
 use wg_2024::packet::{Ack, Fragment, Nack, NackType, NodeType};
 use wg_2024::{
     network::*,
@@ -45,6 +45,8 @@ pub trait Client: Send {
     fn sent_packets(&mut self) -> &mut HashMap<u64, Vec<Packet>>;
     /// Contains the count of all packets with a certain session_id that have been acked
     fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>>;
+    /// Send a `Server Type` request to a server
+    fn send_server_type_request(&mut self, server_id: NodeId);
 
     /// Compose a message to send from a raw string
     fn compose_message(

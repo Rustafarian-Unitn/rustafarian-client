@@ -12,4 +12,5 @@ mod tests {
     mod ack_test;
     mod nack_test;
     mod flood_req_test;
+    mod server_type_test;
 }

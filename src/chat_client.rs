@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatResponse, ChatResponseWrapper};
+use rustafarian_shared::messages::chat_messages::{ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
+use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
 use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -119,7 +120,8 @@ impl Client for ChatClient {
         match response {
             ChatResponseWrapper::Chat(response) => self.handle_chat_response(response, server_id),
             ChatResponseWrapper::ServerType(server_response) => {
-                println!("Server response: {:?}", server_response)
+                println!("Server response: {:?}", server_response);
+                self.available_clients.insert(server_id, vec![]);
             }
         }
     }
@@ -171,5 +173,12 @@ impl Client for ChatClient {
     
     fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>> {
         &mut self.acked_packets
+    }
+    
+    fn send_server_type_request(&mut self, server_id: NodeId) {
+        let request = ServerTypeRequest::ServerType;
+        let request_wrapped = ChatRequestWrapper::ServerType(request);
+        let request_json = request_wrapped.stringify();
+        self.send_message(server_id, request_json);
     }
 }
