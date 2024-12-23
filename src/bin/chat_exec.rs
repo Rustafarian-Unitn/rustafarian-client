@@ -5,10 +5,10 @@ use rustafarian_client::{chat_client::ChatClient, client::Client};
 use wg_2024::packet::Packet;
 
 fn main() {
-    let mut channel: (Sender<Packet>, Receiver<Packet>) = crossbeam_channel::unbounded();
+    let channel: (Sender<Packet>, Receiver<Packet>) = crossbeam_channel::unbounded();
     let mut chat_client =
         ChatClient::new(1, HashMap::new(), channel.1, unbounded().1, unbounded().0);
-    chat_client.run();
+    chat_client.run(u64::MAX);
 
     loop {
         // Take input

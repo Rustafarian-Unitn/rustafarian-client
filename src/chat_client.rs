@@ -27,6 +27,7 @@ pub struct ChatClient {
     available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
     assembler: Assembler,
     disassembler: Disassembler,
+    running: bool,
 }
 
 impl ChatClient {
@@ -49,6 +50,7 @@ impl ChatClient {
             available_clients: HashMap::new(),
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
+            running: false
         }
     }
 
@@ -193,5 +195,9 @@ impl Client for ChatClient {
         let request_wrapped = ChatRequestWrapper::ServerType(request);
         let request_json = request_wrapped.stringify();
         self.send_message(server_id, request_json);
+    }
+    
+    fn running(&mut self) -> &mut bool {
+        &mut self.running
     }
 }

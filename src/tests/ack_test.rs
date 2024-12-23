@@ -157,6 +157,7 @@ pub mod ack_test {
     fn test_ack_not_received() {
         let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
             util::build_client();
+        *chat_client.running() = true;
 
         let message = ChatRequest::SendMessage {
             from: 1,
@@ -176,6 +177,7 @@ pub mod ack_test {
             },
             session_id: 0,
         };
+
 
         chat_client.send_packet(packet.clone());
 

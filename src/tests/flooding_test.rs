@@ -44,7 +44,7 @@ pub mod flooding_test {
 
         assert_eq!(
             chat_client.topology().nodes(),
-            &vec![1, 2, 21],
+            &vec![2, 21, 1],
             "Topology should contain nodes 1, 2, and 21"
         );
 
@@ -78,7 +78,7 @@ pub mod flooding_test {
 
         assert_eq!(
             chat_client.topology().nodes(),
-            &vec![21, 2],
+            &vec![2, 21],
             "Topology should contain nodes 1, 2, and 21"
         );
     }

@@ -6,15 +6,14 @@ use rustafarian_shared::topology::{compute_route, Topology};
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
-use rustafarian_shared::messages::general_messages::{
-    DroneSend, Message, Request, Response,
-};
+use rustafarian_shared::messages::general_messages::{DroneSend, Message, Request, Response};
 use wg_2024::packet::{Ack, Fragment, Nack, NackType, NodeType};
 use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
 };
 pub const FRAGMENT_DSIZE: usize = 128;
+pub static mut DEBUG: bool = false;
 
 /// A trait for a client that can send and receive messages
 pub trait Client: Send {
@@ -49,6 +48,8 @@ pub trait Client: Send {
     fn acked_packets(&mut self) -> &mut HashMap<u64, Vec<bool>>;
     /// Send a `Server Type` request to a server
     fn send_server_type_request(&mut self, server_id: NodeId);
+    /// Debug flag to stop the client from resending packets
+    fn running(&mut self) -> &mut bool;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -86,10 +87,20 @@ pub trait Client: Send {
             self.client_id(),
             flood_response
         );
-        self.topology().clear();
         for (i, node) in flood_response.path_trace.iter().enumerate() {
-            self.topology().add_node(node.0);
+            if !self.topology().nodes().contains(&node.0) {
+                self.topology().add_node(node.0);
+            }
             if i > 0 {
+                if self
+                    .topology()
+                    .edges()
+                    .get(&node.0)
+                    .unwrap()
+                    .contains(&flood_response.path_trace[i - 1].0)
+                {
+                    continue;
+                }
                 self.topology()
                     .add_edge(flood_response.path_trace[i - 1].0, node.0);
                 self.topology()
@@ -118,6 +129,13 @@ pub trait Client: Send {
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
         if !matches!(nack.nack_type, NackType::Dropped) {
             self.send_flood_request();
+        }
+        if matches!(nack.nack_type, NackType::ErrorInRouting(_)) {
+            let error_id = match nack.nack_type {
+                NackType::ErrorInRouting(id) => id,
+                _ => panic!("Error in routing not found"),
+            };
+            self.topology().remove_node(error_id);
         }
         match self.sent_packets().get(&packet.session_id) {
             Some(sent_packets) => {
@@ -233,8 +251,10 @@ pub trait Client: Send {
     }
 
     /// Run the client, listening for incoming messages
-    fn run(&mut self) {
-        loop {
+    fn run(&mut self, mut ticks: u64) {
+        println!("Client {} running", self.client_id());
+        *self.running() = true;
+        while ticks > 0 {
             select_biased! {
                 recv(self.sim_controller_receiver()) -> packet => {
                     self.handle_sim_controller_packets(packet);
@@ -243,11 +263,16 @@ pub trait Client: Send {
                     self.on_drone_packet_received(packet);
                 }
             }
+            ticks -= 1;
         }
+        *self.running() = false;
     }
 
     /// If the ACK is not received in time, resend the packet recomputing the route
     fn resend_packet_on_timeout(&mut self, mut packet: Packet, fragment_index: usize) {
+        if !*self.running() {
+            return;
+        }
         let session_id = packet.session_id;
         let destination_id = packet.routing_header.hops[packet.routing_header.len() - 1];
         let client_id = self.client_id();

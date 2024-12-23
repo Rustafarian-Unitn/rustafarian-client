@@ -29,8 +29,8 @@ pub mod test_running {
             client_id,
             neighbors,
             channel.1,
-            controller_channel_commands.1.clone(),
-            controller_channel_messages.0.clone(),
+            controller_channel_commands.1,
+            controller_channel_messages.0
         );
 
         chat_client.topology().add_node(2);
@@ -59,11 +59,10 @@ pub mod test_running {
         };
 
         thread::spawn(move || {
-            chat_client.run();
+            chat_client.run(10);
         });
 
         channel.0.send(fake_packet).unwrap();
-
         let sim_received = controller_channel_messages.1.recv().unwrap();
         assert!(matches!(
             sim_received,
@@ -98,7 +97,7 @@ pub mod test_running {
         let sim_command = SimControllerCommand::SendMessage("Hello".to_string(), 21, 3);
 
         thread::spawn(move || {
-            chat_client.run();
+            chat_client.run(1);
         });
 
         controller_channel_commands.0.send(sim_command).unwrap();

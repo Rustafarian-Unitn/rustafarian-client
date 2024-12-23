@@ -195,7 +195,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-drone"
 version = "0.1.0"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-drone?branch=development#0aba6d45bccde34d8e2d5234af42003a3a5a1670"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-drone?branch=development#3e9546b8d01e2c57d5214b1112765d588344263e"
 dependencies = [
  "crossbeam",
  "crossbeam-channel",
@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#d496674816841ac04a7304d21360cfe8de0c378a"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#b8c8e4feaadd5f5edfbc49fd84617d8a0d65162f"
 dependencies = [
  "serde",
  "serde_json",
@@ -276,9 +276,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.90"
+version = "2.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "919d3b74a5dd0ccd15aeb8f93e7006bd9e14c295087c9896a110f490752bcf31"
+checksum = "d53cbcb5a243bd33b7858b1d7f4aca2153490815872d86d955d6ea29f743c035"
 dependencies = [
  "proc-macro2",
  "quote",
