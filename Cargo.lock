@@ -195,7 +195,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-drone"
 version = "0.1.0"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-drone?branch=development#3e9546b8d01e2c57d5214b1112765d588344263e"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-drone?branch=development#e33c9766af2b8455a363661c261be4fe414325df"
 dependencies = [
  "crossbeam",
  "crossbeam-channel",
@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#b8c8e4feaadd5f5edfbc49fd84617d8a0d65162f"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#a2e3e1e85dbc3560ea81a504c94a6ac9cd8a3a62"
 dependencies = [
  "serde",
  "serde_json",
