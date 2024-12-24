@@ -330,7 +330,7 @@ pub trait Client: Send {
             .or_insert(Vec::new())
             .push(message.clone());
         let packet_type = message.pack_type.clone();
-        match packet_type {
+        match packet_type.clone() {
             PacketType::MsgFragment(fragment) => {
                 self.acked_packets()
                     .entry(message.session_id)
@@ -340,9 +340,20 @@ pub trait Client: Send {
             _ => {}
         }
         let drone_id = message.routing_header.hops[1];
+        let session_id = message.session_id;
         match self.senders().get(&drone_id) {
             Some(sender) => {
                 sender.send(message).unwrap();
+
+                // Notify the simulation controller that a packet has been sent
+                let _res = self
+                    .sim_controller_sender()
+                    .send(SimControllerResponseWrapper::Event(
+                        SimControllerEvent::PacketSent {
+                            session_id,
+                            packet_type: packet_type.to_string(),
+                        },
+                    ));
             }
             None => {
                 eprintln!(
