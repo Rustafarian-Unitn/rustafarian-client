@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#a2e3e1e85dbc3560ea81a504c94a6ac9cd8a3a62"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#02852c44478ded2079872daf46ee879cdea5b08f"
 dependencies = [
  "serde",
  "serde_json",

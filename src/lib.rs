@@ -8,4 +8,5 @@ mod tests {
     
     mod routing_test;
     mod chat;
+    mod browser;
 }

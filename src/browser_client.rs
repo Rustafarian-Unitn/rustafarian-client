@@ -8,7 +8,7 @@ use rustafarian_shared::messages::browser_messages::{
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
+use rustafarian_shared::messages::general_messages::{DroneSend, Message, ServerTypeRequest};
 use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -80,14 +80,29 @@ impl BrowserClient {
     fn handle_browser_response(&mut self, response: BrowserResponse, server_id: NodeId) {
         match response {
             BrowserResponse::FileList(files) => {
-                let files = String::from_utf8(files).unwrap();
-                println!("Files: {}", files);
+                let files_str = String::from_utf8(files.clone()).unwrap();
+                println!("Files: {}", files_str);
+
+                let _res = self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(
+                        SimControllerMessage::FileListResponse(files)
+                    ));
             }
-            BrowserResponse::TextFile(text) => {
+            BrowserResponse::TextFile(file_id, text) => {
                 println!("Text: {}", text);
+
+                let _res = self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(
+                        SimControllerMessage::TextFileResponse(file_id, text)
+                    ));
             }
-            BrowserResponse::MediaFile(media) => {
+            BrowserResponse::MediaFile(file_id, media) => {
                 println!("Media: {:?}", media);
+
+                let _res = self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(
+                        SimControllerMessage::MediaFileResponse(file_id, media)
+                    ));
             }
         };
     }
