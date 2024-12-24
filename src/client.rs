@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerEvent, SimControllerResponseWrapper,
+    SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
 use rustafarian_shared::topology::{compute_route, Topology};
 
@@ -109,6 +109,12 @@ pub trait Client: Send {
                     .add_edge(node.0, flood_response.path_trace[i - 1].0);
             }
         }
+
+        let _res = self
+            .sim_controller_sender()
+            .send(SimControllerResponseWrapper::Message(
+                SimControllerMessage::FloodResponse(flood_response.flood_id),
+            ));
     }
 
     /// When a fragment is received from a Drone

@@ -115,7 +115,7 @@ impl ChatClient {
 }
 
 impl Client for ChatClient {
-    type RequestType = ChatRequest;
+    type RequestType = ChatRequestWrapper;
     type ResponseType = ChatResponseWrapper;
     type SimControllerCommand = SimControllerCommand;
 
