@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::browser_messages::{
-    BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
+    BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper
 };
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
@@ -53,11 +53,29 @@ impl BrowserClient {
         }
     }
 
-    pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {}
+    pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {
+        let request = BrowserRequestWrapper::Chat(
+            BrowserRequest::TextFileRequest(file_id)
+        );
+        let request_json = request.stringify();
+        self.send_message(server_id, request_json);
+    }
 
-    pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {}
+    pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {
+        let request = BrowserRequestWrapper::Chat(
+            BrowserRequest::MediaFileRequest(file_id)
+        );
+        let request_json = request.stringify();
+        self.send_message(server_id, request_json);
+    }
 
-    pub fn request_file_list(&mut self, server_id: NodeId) {}
+    pub fn request_file_list(&mut self, server_id: NodeId) {
+        let request = BrowserRequestWrapper::Chat(
+            BrowserRequest::FileList
+        );
+        let request_json = request.stringify();
+        self.send_message(server_id, request_json);
+    }
 
     fn handle_browser_response(&mut self, response: BrowserResponse, server_id: NodeId) {
         match response {
