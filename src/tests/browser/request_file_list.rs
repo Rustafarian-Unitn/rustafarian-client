@@ -3,8 +3,7 @@ pub mod request_file_list {
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
-            browser_messages::{BrowserRequest, BrowserRequestWrapper},
-            general_messages::DroneSend,
+            browser_messages::{BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper}, commander_messages::{SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper}, general_messages::DroneSend
         },
     };
     use wg_2024::{
@@ -12,7 +11,7 @@ pub mod request_file_list {
         packet::{Packet, PacketType},
     };
 
-    use crate::tests::util::build_browser;
+    use crate::{client::Client, tests::util::build_browser};
 
     #[test]
     fn request_file_list() {
@@ -34,5 +33,59 @@ pub mod request_file_list {
             pack_type: PacketType::MsgFragment(disassembled.get(0).unwrap().clone()),
         };
         assert_eq!(expected_packet, received_packet);
+    }
+
+    #[test]
+    fn file_list_response() {
+        let (mut browser_client, _neighbor, _sim_controller_commands, sim_controller_response) =
+            build_browser();
+
+        let file_list_response =
+            BrowserResponseWrapper::Chat(BrowserResponse::FileList(vec![1, 2, 3, 4, 5]));
+
+        let file_list_response_json = file_list_response.stringify();
+
+        let disassembled =
+            Disassembler::new().disassemble_message(file_list_response_json.as_bytes().to_vec(), 0);
+
+        let packet = Packet {
+            routing_header: SourceRoutingHeader::new(vec![21, 2, 1], 1),
+            session_id: 0,
+            pack_type: PacketType::MsgFragment(disassembled.get(0).unwrap().clone()),
+        };
+
+        browser_client.on_drone_packet_received(Ok(packet));
+
+        assert_eq!(
+            browser_client.available_files().get(&21).unwrap(),
+            &vec![1, 2, 3, 4, 5]
+        );
+
+        // Sim Controller Packet Sent Event
+        let sim_controller_message = sim_controller_response.1.recv().unwrap();
+
+        match sim_controller_message {
+            SimControllerResponseWrapper::Event(event) => match event {
+                SimControllerEvent::PacketReceived(packet_id) => {
+                    assert_eq!(packet_id, 0);
+                }
+                _ => panic!("Unexpected event"),
+            },
+            _ => panic!("Unexpected message"),
+        }
+
+        // Then tests sim controller message
+
+        let sim_controller_message = sim_controller_response.1.recv().unwrap();
+
+        match sim_controller_message {
+            SimControllerResponseWrapper::Message(message) => match message {
+                SimControllerMessage::FileListResponse(files) => {
+                    assert_eq!(files, vec![1, 2, 3, 4, 5]);
+                }
+                _ => panic!("Unexpected message"),
+            },
+            _ => panic!("Unexpected message"),
+        }
     }
 }

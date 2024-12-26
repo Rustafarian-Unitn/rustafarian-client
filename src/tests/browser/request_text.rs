@@ -15,7 +15,7 @@ pub mod request_file_list {
     use crate::tests::util::build_browser;
 
     #[test]
-    fn request_file_list() {
+    fn request_text() {
         let (mut browser_client, neighbor, _, _) = build_browser();
         browser_client.request_text_file(1, 21);
 
