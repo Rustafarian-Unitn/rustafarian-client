@@ -331,6 +331,7 @@ pub trait Client: Send {
 
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
+        println!("Sending packet: {:?}", message.clone());
         self.sent_packets()
             .entry(message.session_id)
             .or_insert(Vec::new())

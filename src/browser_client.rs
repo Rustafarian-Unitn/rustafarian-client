@@ -80,6 +80,7 @@ impl BrowserClient {
     fn handle_browser_response(&mut self, response: BrowserResponse, server_id: NodeId) {
         match response {
             BrowserResponse::FileList(files) => {
+                self.available_files.insert(server_id, files.clone());
                 let files_str = String::from_utf8(files.clone()).unwrap();
                 println!("Files: {}", files_str);
 
@@ -105,6 +106,10 @@ impl BrowserClient {
                     ));
             }
         };
+    }
+
+    pub fn available_files(&self) -> &HashMap<NodeId, Vec<u8>> {
+        &self.available_files
     }
 }
 
