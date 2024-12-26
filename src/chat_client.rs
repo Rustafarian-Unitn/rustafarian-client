@@ -9,7 +9,9 @@ use rustafarian_shared::messages::chat_messages::{
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
+use rustafarian_shared::messages::general_messages::{
+    DroneSend, ServerType, ServerTypeRequest, ServerTypeResponse,
+};
 use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -140,7 +142,16 @@ impl Client for ChatClient {
             ChatResponseWrapper::Chat(response) => self.handle_chat_response(response, server_id),
             ChatResponseWrapper::ServerType(server_response) => {
                 println!("Server response: {:?}", server_response);
-                self.available_clients.insert(server_id, vec![]);
+                let server_response = match server_response {
+                    ServerTypeResponse::ServerType(response) => response,
+                };
+                // If it's a chat server, add it to the available servers (as a key of available_clients)
+                match server_response {
+                    ServerType::Chat => {
+                        self.available_clients.insert(server_id, vec![]);
+                    }
+                    _ => {}
+                }
             }
         }
     }

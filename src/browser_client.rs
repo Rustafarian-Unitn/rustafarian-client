@@ -3,18 +3,21 @@ use std::collections::HashMap;
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::browser_messages::{
-    BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper
+    BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
 };
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
+use rustafarian_shared::messages::general_messages::{
+    DroneSend, ServerType, ServerTypeRequest, ServerTypeResponse,
+};
 use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{network::NodeId, packet::Packet};
 
 pub struct BrowserClient {
+    // Used for general client
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
@@ -23,11 +26,16 @@ pub struct BrowserClient {
     sim_controller_sender: Sender<SimControllerResponseWrapper>,
     sent_packets: HashMap<u64, Vec<Packet>>,
     acked_packets: HashMap<u64, Vec<bool>>,
-    available_files: HashMap<NodeId, Vec<u8>>, // Key: server_id, value: list of file ids
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
-    obtained_files: HashMap<u8, Vec<u8>>,
+
+    // Specific to browser client
+    available_text_files: HashMap<NodeId, Vec<u8>>, // The text files available from Text Content Servers
+    available_media_files: HashMap<NodeId, Vec<u8>>, // The media files available from Media Content Servers
+    obtained_text_files: HashMap<(NodeId, u8), Vec<u8>>, // The text files obtained from Text Content Servers. The key is a tuple of (server_id, file_id)
+    obtained_media_files: HashMap<(NodeId, u8), Vec<u8>>, // The media files obtained from Media Content Servers. The key is a tuple of (server_id, file_id)
+    available_servers: HashMap<NodeId, ServerType>, // The servers available to the browser client
 }
 
 impl BrowserClient {
@@ -47,34 +55,31 @@ impl BrowserClient {
             sim_controller_sender,
             sent_packets: HashMap::new(),
             acked_packets: HashMap::new(),
-            available_files: HashMap::new(),
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
             running: false,
-            obtained_files: HashMap::new(),
+            available_text_files: HashMap::new(),
+            available_media_files: HashMap::new(),
+            obtained_text_files: HashMap::new(),
+            obtained_media_files: HashMap::new(),
+            available_servers: HashMap::new(),
         }
     }
 
     pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {
-        let request = BrowserRequestWrapper::Chat(
-            BrowserRequest::TextFileRequest(file_id)
-        );
+        let request = BrowserRequestWrapper::Chat(BrowserRequest::TextFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
 
     pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {
-        let request = BrowserRequestWrapper::Chat(
-            BrowserRequest::MediaFileRequest(file_id)
-        );
+        let request = BrowserRequestWrapper::Chat(BrowserRequest::MediaFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
 
     pub fn request_file_list(&mut self, server_id: NodeId) {
-        let request = BrowserRequestWrapper::Chat(
-            BrowserRequest::FileList
-        );
+        let request = BrowserRequestWrapper::Chat(BrowserRequest::FileList);
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
@@ -82,42 +87,70 @@ impl BrowserClient {
     fn handle_browser_response(&mut self, response: BrowserResponse, server_id: NodeId) {
         match response {
             BrowserResponse::FileList(files) => {
-                self.available_files.insert(server_id, files.clone());
+                match self.available_servers.get(&server_id) {
+                    Some(server_type) => {
+                        if matches!(server_type, ServerType::Text) {
+                            self.available_text_files.insert(server_id, files.clone());
+                        } else if matches!(server_type, ServerType::Media) {
+                            self.available_media_files.insert(server_id, files.clone());
+                        }
+                    }
+                    None => {
+                        eprintln!("Server type not found for server_id: {}", server_id);
+                    }
+                }
                 let files_str = String::from_utf8(files.clone()).unwrap();
                 println!("Files: {}", files_str);
 
-                let _res = self.sim_controller_sender
+                let _res = self
+                    .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::FileListResponse(files)
+                        SimControllerMessage::FileListResponse(files),
                     ));
             }
             BrowserResponse::TextFile(file_id, text) => {
-                self.obtained_files.insert(file_id, text.as_bytes().to_vec());
-                println!("Text: {}", text);
+                self.obtained_text_files
+                    .insert((server_id, file_id), text.as_bytes().to_vec());
 
-                let _res = self.sim_controller_sender
+                println!("Text: {}", text);
+                let _res = self
+                    .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::TextFileResponse(file_id, text)
+                        SimControllerMessage::TextFileResponse(file_id, text),
                     ));
             }
             BrowserResponse::MediaFile(file_id, media) => {
-                self.obtained_files.insert(file_id, media.clone());
+                self.obtained_media_files
+                    .insert((server_id, file_id), media.clone());
                 println!("Media: {:?}", media);
 
-                let _res = self.sim_controller_sender
+                let _res = self
+                    .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::MediaFileResponse(file_id, media)
+                        SimControllerMessage::MediaFileResponse(file_id, media),
                     ));
             }
         };
     }
 
-    pub fn available_files(&self) -> &HashMap<NodeId, Vec<u8>> {
-        &self.available_files
+    pub fn get_available_text_files(&self) -> &HashMap<NodeId, Vec<u8>> {
+        &self.available_text_files
     }
 
-    pub fn obtained_files(&self) -> &HashMap<u8, Vec<u8>> {
-        &self.obtained_files
+    pub fn get_available_media_files(&self) -> &HashMap<NodeId, Vec<u8>> {
+        &self.available_media_files
+    }
+
+    pub fn get_obtained_text_files(&self) -> &HashMap<(NodeId, u8), Vec<u8>> {
+        &self.obtained_text_files
+    }
+
+    pub fn get_obtained_media_files(&self) -> &HashMap<(NodeId, u8), Vec<u8>> {
+        &self.obtained_media_files
+    }
+
+    pub fn get_available_servers(&self) -> &HashMap<NodeId, ServerType> {
+        &self.available_servers
     }
 }
 
@@ -148,8 +181,22 @@ impl Client for BrowserClient {
                 self.handle_browser_response(response, server_id)
             }
             BrowserResponseWrapper::ServerType(server_response) => {
+                let server_response = match server_response {
+                    ServerTypeResponse::ServerType(response) => response,
+                };
                 println!("Server response: {:?}", server_response);
-                self.available_files.insert(server_id, vec![]);
+                // If it's not a chat server, add it to the available servers (as a key of available_files)
+                match server_response {
+                    ServerType::Text => {
+                        self.available_servers.insert(server_id, ServerType::Text);
+                        self.available_text_files.insert(server_id, vec![]);
+                    }
+                    ServerType::Media => {
+                        self.available_servers.insert(server_id, ServerType::Media);
+                        self.available_media_files.insert(server_id, vec![]);
+                    }
+                    _ => {}
+                }
             }
         }
     }

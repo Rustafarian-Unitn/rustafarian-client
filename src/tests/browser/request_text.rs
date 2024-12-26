@@ -66,7 +66,7 @@ pub mod request_file_list {
         browser_client.on_drone_packet_received(Ok(packet));
 
         assert_eq!(
-            browser_client.obtained_files().get(&222).unwrap(),
+            browser_client.get_obtained_text_files().get(&(21, 222)).unwrap(),
             &example_text_file.as_bytes().to_vec()
         );
 
