@@ -118,5 +118,17 @@ pub mod request_file_list {
             },
             _ => panic!("Unexpected message"),
         }
+
+        // Then, it receives the PacketSent for the ACK for that fragment
+        let sim_controller_message = sim_controller_response.1.recv().unwrap();
+        match sim_controller_message {
+            SimControllerResponseWrapper::Event(event) => match event {
+                SimControllerEvent::PacketSent {session_id, packet_type} => {
+                    assert_eq!(packet_type, "Ack(0)");
+                }
+                _ => panic!("Unexpected event"),
+            },
+            _ => panic!("Unexpected message"),
+        }
     }
 }

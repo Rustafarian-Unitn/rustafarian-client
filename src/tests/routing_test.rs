@@ -148,13 +148,15 @@ pub mod routing_test {
         topology.add_node(4);
         topology.add_node(5);
         topology.add_node(6);
+        topology.add_node(7);
 
         topology.add_edge(1, 2);
         topology.add_edge(1, 3);
         topology.add_edge(2, 4);
         topology.add_edge(3, 5);
         topology.add_edge(4, 6);
-        topology.add_edge(5, 6);
+        topology.add_edge(5, 7);
+        topology.add_edge(7, 6);
 
         let route = compute_route(&topology, 1, 6);
         assert_eq!(route, vec![1, 2, 4, 6]);
