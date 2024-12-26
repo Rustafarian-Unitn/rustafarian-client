@@ -54,7 +54,8 @@ pub mod send_message_test {
             to: 3,
             message,
         };
-        let serialized_message = serde_json::to_string(&ChatRequestWrapper::Chat(message_req)).unwrap();
+        let serialized_message =
+            serde_json::to_string(&ChatRequestWrapper::Chat(message_req)).unwrap();
 
         let fragments =
             Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);

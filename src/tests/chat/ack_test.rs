@@ -181,7 +181,6 @@ pub mod ack_test {
             session_id: 0,
         };
 
-
         chat_client.send_packet(packet.clone());
 
         assert!(matches!(
@@ -202,10 +201,10 @@ pub mod ack_test {
         neighbors.insert(2 as u8, neighbor.0.clone());
         let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
         let client_id = 1;
-    
+
         let controller_channel_commands = unbounded();
         let controller_channel_messages = unbounded();
-    
+
         let mut chat_client = ChatClient::new(
             client_id,
             neighbors,
@@ -233,16 +232,15 @@ pub mod ack_test {
             session_id: 0,
         };
 
-
         chat_client.send_packet(packet.clone());
-    
+
         chat_client.topology().add_node(2);
         chat_client.topology().add_node(3);
         chat_client.topology().add_node(21);
         chat_client.topology().add_edge(2, 3);
         chat_client.topology().add_edge(3, 21);
         chat_client.topology().add_edge(1, 2);
-        
+
         let nack = Packet {
             pack_type: PacketType::Nack(Nack {
                 nack_type: NackType::ErrorInRouting(3),
@@ -261,6 +259,11 @@ pub mod ack_test {
         assert!(chat_client.topology().edges().contains_key(&2));
         assert!(chat_client.topology().edges().get(&2).unwrap().contains(&1));
         assert!(!chat_client.topology().edges().get(&2).unwrap().contains(&3));
-        assert!(!chat_client.topology().edges().get(&21).unwrap().contains(&3));
+        assert!(!chat_client
+            .topology()
+            .edges()
+            .get(&21)
+            .unwrap()
+            .contains(&3));
     }
 }

@@ -49,8 +49,10 @@ pub mod request_file_list {
 
         let example_media_file = vec![1, 2, 3, 4, 5];
 
-        let file_list_response =
-            BrowserResponseWrapper::Chat(BrowserResponse::MediaFile(111, example_media_file.clone()));
+        let file_list_response = BrowserResponseWrapper::Chat(BrowserResponse::MediaFile(
+            111,
+            example_media_file.clone(),
+        ));
 
         let file_list_response_json = file_list_response.stringify();
 
@@ -66,7 +68,10 @@ pub mod request_file_list {
         browser_client.on_drone_packet_received(Ok(packet));
 
         assert_eq!(
-            browser_client.get_obtained_media_files().get(&(21, 111)).unwrap(),
+            browser_client
+                .get_obtained_media_files()
+                .get(&(21, 111))
+                .unwrap(),
             &example_media_file
         );
 

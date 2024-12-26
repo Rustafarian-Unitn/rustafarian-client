@@ -12,8 +12,8 @@ pub mod server_type_test {
         assembler::disassembler::Disassembler, messages::chat_messages::ChatRequestWrapper,
     };
 
-    use crate::tests::util;
     use crate::client::Client;
+    use crate::tests::util;
 
     #[test]
     fn test_server_type_request() {
@@ -43,8 +43,12 @@ pub mod server_type_test {
 
     #[test]
     fn test_server_type_response() {
-        let (mut chat_client, _neighbor, _controller_channel_commands, _controller_channel_messages) =
-            util::build_client();
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let server_type_response =
             ChatResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Chat));

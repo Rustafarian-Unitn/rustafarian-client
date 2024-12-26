@@ -14,7 +14,7 @@ pub mod nack_test {
     fn test_flood_request_sent_on_nack_received() {
         let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
             util::build_client();
-            
+
         chat_client.sent_packets().insert(0, vec![]);
         chat_client
             .sent_packets()

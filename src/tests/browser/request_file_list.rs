@@ -3,7 +3,13 @@ pub mod request_file_list {
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
-            browser_messages::{BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper}, commander_messages::{SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper}, general_messages::{DroneSend, ServerType, ServerTypeResponse}
+            browser_messages::{
+                BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
+            },
+            commander_messages::{
+                SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
+            },
+            general_messages::{DroneSend, ServerType, ServerTypeResponse},
         },
     };
     use wg_2024::{
@@ -47,8 +53,8 @@ pub mod request_file_list {
 
         let server_type_response_json = server_type_response.stringify();
 
-        let disassembled =
-            Disassembler::new().disassemble_message(server_type_response_json.as_bytes().to_vec(), 0);
+        let disassembled = Disassembler::new()
+            .disassemble_message(server_type_response_json.as_bytes().to_vec(), 0);
 
         let packet = Packet {
             routing_header: SourceRoutingHeader::new(vec![21, 2, 1], 1),
@@ -123,7 +129,10 @@ pub mod request_file_list {
         let sim_controller_message = sim_controller_response.1.recv().unwrap();
         match sim_controller_message {
             SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketSent {session_id, packet_type} => {
+                SimControllerEvent::PacketSent {
+                    session_id: _,
+                    packet_type,
+                } => {
                     assert_eq!(packet_type, "Ack(0)");
                 }
                 _ => panic!("Unexpected event"),

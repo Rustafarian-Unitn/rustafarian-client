@@ -4,13 +4,17 @@ pub mod client_list_test {
     use rustafarian_shared::messages::chat_messages::{ChatResponse, ChatResponseWrapper};
     use wg_2024::packet::{Packet, PacketType};
 
-    use crate::tests::util;
     use crate::client::Client;
+    use crate::tests::util;
 
     #[test]
     fn test_receive_client_list() {
-        let (mut chat_client, _neighbor, _controller_channel_commands, _controller_channel_messages) =
-            util::build_client();
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
 
         let client_list_response =
             ChatResponseWrapper::Chat(ChatResponse::ClientList([11, 12].to_vec()));
