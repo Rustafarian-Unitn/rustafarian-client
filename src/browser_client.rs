@@ -242,7 +242,9 @@ impl Client for BrowserClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
-            _ => {}
+            _ => {
+                eprintln!("Requesting Chat Client commands on Browser Client?! ({:?})", command);
+            }
         }
     }
 
