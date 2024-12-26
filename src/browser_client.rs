@@ -181,9 +181,7 @@ impl Client for BrowserClient {
                 self.handle_browser_response(response, server_id)
             }
             BrowserResponseWrapper::ServerType(server_response) => {
-                let server_response = match server_response {
-                    ServerTypeResponse::ServerType(response) => response,
-                };
+                let ServerTypeResponse::ServerType(server_response) = server_response;
                 println!("Server response: {:?}", server_response);
                 // If it's not a chat server, add it to the available servers (as a key of available_files)
                 match server_response {
@@ -243,7 +241,10 @@ impl Client for BrowserClient {
                     .unwrap();
             }
             _ => {
-                eprintln!("Requesting Chat Client commands on Browser Client?! ({:?})", command);
+                eprintln!(
+                    "Requesting Chat Client commands on Browser Client?! ({:?})",
+                    command
+                );
             }
         }
     }

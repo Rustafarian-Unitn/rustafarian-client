@@ -62,7 +62,7 @@ impl ChatClient {
     }
 
     /// Send a 'register' message to a server
-    pub fn register(&mut self, server_id: NodeId) -> () {
+    pub fn register(&mut self, server_id: NodeId) {
         let request = ChatRequestWrapper::Chat(ChatRequest::Register(self.client_id));
         let request_json = serde_json::to_string(&request).unwrap();
         self.send_message(server_id, request_json);
@@ -142,15 +142,10 @@ impl Client for ChatClient {
             ChatResponseWrapper::Chat(response) => self.handle_chat_response(response, server_id),
             ChatResponseWrapper::ServerType(server_response) => {
                 println!("Server response: {:?}", server_response);
-                let server_response = match server_response {
-                    ServerTypeResponse::ServerType(response) => response,
-                };
+                let ServerTypeResponse::ServerType(server_response) = server_response;
                 // If it's a chat server, add it to the available servers (as a key of available_clients)
-                match server_response {
-                    ServerType::Chat => {
-                        self.available_clients.insert(server_id, vec![]);
-                    }
-                    _ => {}
+                if let ServerType::Chat = server_response {
+                    self.available_clients.insert(server_id, vec![]);
                 }
             }
         }

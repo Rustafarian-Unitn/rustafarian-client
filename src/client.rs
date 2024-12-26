@@ -173,7 +173,7 @@ pub trait Client: Send {
         // Increase the count of acked packets for this session ID
         self.acked_packets()
             .entry(packet.session_id)
-            .or_insert(Vec::new())
+            .or_default()
             .insert(ack.fragment_index as usize, true);
         // Get the current count of acked packets for this session ID
         let acked_packet_count = self
@@ -267,7 +267,7 @@ pub trait Client: Send {
 
     /// Run the client, listening for incoming messages
     fn run(&mut self, mut ticks: u64) {
-        if self.topology().edges().len() == 0 {
+        if self.topology().edges().is_empty() {
             let senders = self.senders().clone();
             let client_id = self.client_id();
             for (sender_id, _channel) in senders {
@@ -299,7 +299,7 @@ pub trait Client: Send {
         let session_id = packet.session_id;
         let destination_id = packet.routing_header.hops[packet.routing_header.len() - 1];
         let client_id = self.client_id();
-        let new_route = Topology::get_routing_header(&self.topology(), client_id, destination_id);
+        let new_route = Topology::get_routing_header(self.topology(), client_id, destination_id);
         let sender = self.senders().get(&new_route.hops[1]).unwrap().clone();
         let acked_packets = Arc::new(Mutex::new(self.acked_packets().clone()));
         packet.routing_header = new_route;
@@ -334,17 +334,14 @@ pub trait Client: Send {
         println!("Sending packet: {:?}", message.clone());
         self.sent_packets()
             .entry(message.session_id)
-            .or_insert(Vec::new())
+            .or_default()
             .push(message.clone());
         let packet_type = message.pack_type.clone();
-        match packet_type.clone() {
-            PacketType::MsgFragment(fragment) => {
-                self.acked_packets()
-                    .entry(message.session_id)
-                    .or_insert(vec![false; fragment.total_n_fragments as usize]);
-                self.resend_packet_on_timeout(message.clone(), fragment.fragment_index as usize);
-            }
-            _ => {}
+        if let PacketType::MsgFragment(fragment) = packet_type.clone() {
+            self.acked_packets()
+                .entry(message.session_id)
+                .or_insert(vec![false; fragment.total_n_fragments as usize]);
+            self.resend_packet_on_timeout(message.clone(), fragment.fragment_index as usize);
         }
         let drone_id = message.routing_header.hops[1];
         let session_id = message.session_id;
@@ -386,7 +383,7 @@ pub trait Client: Send {
                 session_id,
                 routing_header: SourceRoutingHeader {
                     hop_index: 1,
-                    hops: compute_route(&self.topology(), client_id, destination_id),
+                    hops: compute_route(self.topology(), client_id, destination_id),
                 },
             };
             self.send_packet(packet);
@@ -401,7 +398,7 @@ pub trait Client: Send {
             session_id,
             routing_header: SourceRoutingHeader {
                 hop_index: 1,
-                hops: compute_route(&self.topology(), client_id, destination_id),
+                hops: compute_route(self.topology(), client_id, destination_id),
             },
         };
         println!("Sending packet: {:?}", packet.clone());
@@ -410,7 +407,7 @@ pub trait Client: Send {
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
-        for (_client_id, sender) in self.senders() {
+        for sender in self.senders() {
             let packet = Packet {
                 pack_type: PacketType::FloodRequest(FloodRequest {
                     initiator_id: self.client_id(),
@@ -423,7 +420,7 @@ pub trait Client: Send {
                     hops: Vec::new(),
                 },
             };
-            sender.send(packet).unwrap();
+            sender.1.send(packet).unwrap();
         }
         self.sim_controller_sender()
             .send(SimControllerResponseWrapper::Event(
