@@ -27,6 +27,7 @@ pub struct BrowserClient {
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
+    obtained_files: HashMap<u8, Vec<u8>>,
 }
 
 impl BrowserClient {
@@ -50,6 +51,7 @@ impl BrowserClient {
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
             running: false,
+            obtained_files: HashMap::new(),
         }
     }
 
@@ -90,6 +92,7 @@ impl BrowserClient {
                     ));
             }
             BrowserResponse::TextFile(file_id, text) => {
+                self.obtained_files.insert(file_id, text.as_bytes().to_vec());
                 println!("Text: {}", text);
 
                 let _res = self.sim_controller_sender
@@ -98,6 +101,7 @@ impl BrowserClient {
                     ));
             }
             BrowserResponse::MediaFile(file_id, media) => {
+                self.obtained_files.insert(file_id, media.clone());
                 println!("Media: {:?}", media);
 
                 let _res = self.sim_controller_sender
@@ -110,6 +114,10 @@ impl BrowserClient {
 
     pub fn available_files(&self) -> &HashMap<NodeId, Vec<u8>> {
         &self.available_files
+    }
+
+    pub fn obtained_files(&self) -> &HashMap<u8, Vec<u8>> {
+        &self.obtained_files
     }
 }
 
