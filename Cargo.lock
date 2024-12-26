@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=feature%2Ftopology-unique-edges#85a25c2bff1390e028b44098f20fb414c9094ac6"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared?branch=main#efc93014873d026dff01e22b73b03f5cba5bf0ca"
 dependencies = [
  "serde",
  "serde_json",
