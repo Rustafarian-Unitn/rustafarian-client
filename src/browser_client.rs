@@ -8,7 +8,7 @@ use rustafarian_shared::messages::browser_messages::{
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::messages::general_messages::{DroneSend, Message, ServerTypeRequest};
+use rustafarian_shared::messages::general_messages::{DroneSend, ServerTypeRequest};
 use rustafarian_shared::topology::Topology;
 
 use crossbeam_channel::{Receiver, Sender};
