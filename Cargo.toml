@@ -11,7 +11,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 rustafarian-project = { git = "https://github.com/Rustafarian-Unitn/rustafarian-project/", branch = "project-fair" }
 rand = { version = "0.8" }
-rustafarian-shared = { git = "https://github.com/Rustafarian-Unitn/rustafarian-shared", branch = "feature/topology-unique-edges" }
+rustafarian-shared = { git = "https://github.com/Rustafarian-Unitn/rustafarian-shared" }
 
 [[bin]]
 name = "rustafarian_client"
