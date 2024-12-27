@@ -3,12 +3,10 @@ pub mod request_file_list {
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
-            browser_messages::{
-                BrowserRequest, BrowserRequestWrapper,
+            browser_messages::{BrowserRequest, BrowserRequestWrapper},
+            commander_messages::{
+                SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
             },
-            commander_messages::
-                SimControllerCommand
-            ,
             general_messages::DroneSend,
         },
     };
@@ -17,7 +15,10 @@ pub mod request_file_list {
         packet::{Packet, PacketType},
     };
 
-    use crate::{client::Client, tests::util::build_browser};
+    use crate::{
+        client::Client,
+        tests::util::{self, build_browser},
+    };
 
     #[test]
     fn test_command_file_list() {
@@ -90,5 +91,68 @@ pub mod request_file_list {
         };
 
         assert_eq!(expected_packet, received_packet);
+    }
+
+    #[test]
+    fn test_sending_request() {
+        let (
+            mut browser_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        browser_client.handle_controller_commands(SimControllerCommand::FloodRequest);
+
+        assert!(
+            matches!(
+                neighbor.1.recv().unwrap().pack_type,
+                PacketType::FloodRequest(_)
+            ),
+            "Packet type should be FloodRequest"
+        );
+    }
+
+    #[test]
+    fn topology_request() {
+        let (
+            mut browser_client,
+            _neighbor,
+            _controller_channel_commands,
+            controller_channel_messages,
+        ) = util::build_browser();
+
+        let topology_request = SimControllerCommand::Topology;
+
+        browser_client.handle_sim_controller_packets(Ok(topology_request));
+
+        let received_packet = controller_channel_messages.1.recv().unwrap();
+
+        let message = match received_packet {
+            SimControllerResponseWrapper::Message(message) => message,
+            _ => panic!("Packet type should be Message"),
+        };
+
+        let topology_msg = match message {
+            SimControllerMessage::TopologyResponse(topology) => topology,
+            _ => panic!("Message should be Topology"),
+        };
+
+        assert_eq!(topology_msg.edges(), browser_client.topology().edges());
+        assert_eq!(topology_msg.nodes(), browser_client.topology().nodes());
+    }
+
+    #[test]
+    fn send_unhandled_command() {
+        let (
+            mut browser_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        let unhandled_request = SimControllerCommand::ClientList(21);
+
+        browser_client.handle_sim_controller_packets(Ok(unhandled_request));
     }
 }
