@@ -407,12 +407,13 @@ pub trait Client: Send {
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
+        let self_id = self.client_id();
         for sender in self.senders() {
             let packet = Packet {
                 pack_type: PacketType::FloodRequest(FloodRequest {
                     initiator_id: self.client_id(),
                     flood_id: rand::random(),
-                    path_trace: Vec::new(),
+                    path_trace: vec![(self_id, NodeType::Client)],
                 }),
                 session_id: rand::random(),
                 routing_header: SourceRoutingHeader {
