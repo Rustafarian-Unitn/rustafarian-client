@@ -18,6 +18,7 @@ use crossbeam_channel::{Receiver, Sender};
 use wg_2024::{network::NodeId, packet::Packet};
 
 pub struct ChatClient {
+    // General data for Client
     client_id: u8,
     senders: HashMap<u8, Sender<Packet>>,
     receiver: Receiver<Packet>,
@@ -26,10 +27,13 @@ pub struct ChatClient {
     sim_controller_sender: Sender<SimControllerResponseWrapper>,
     sent_packets: HashMap<u64, Vec<Packet>>,
     acked_packets: HashMap<u64, Vec<bool>>,
-    available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
+
+    // Chat-specific data
+    available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
+    registered_servers: Vec<NodeId>, // List of servers the client is registered to
 }
 
 impl ChatClient {
@@ -49,10 +53,11 @@ impl ChatClient {
             sim_controller_sender,
             sent_packets: HashMap::new(),
             acked_packets: HashMap::new(),
-            available_clients: HashMap::new(),
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
             running: false,
+            available_clients: HashMap::new(),
+            registered_servers: vec![],
         }
     }
 
@@ -111,6 +116,10 @@ impl ChatClient {
             }
             ChatResponse::MessageSent => {
                 println!("Message sent");
+            }
+            ChatResponse::ClientRegistered => {
+                println!("Client registered");
+                self.registered_servers.push(server_id);
             }
         };
     }
