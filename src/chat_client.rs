@@ -33,7 +33,7 @@ pub struct ChatClient {
 
     // Chat-specific data
     available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
-    registered_servers: Vec<NodeId>, // List of servers the client is registered to
+    registered_servers: Vec<NodeId>,                 // List of servers the client is registered to
 }
 
 impl ChatClient {
@@ -156,6 +156,12 @@ impl Client for ChatClient {
                 if let ServerType::Chat = server_response {
                     self.available_clients.insert(server_id, vec![]);
                 }
+
+                // send the server type response to the sim controller
+                let response = SimControllerMessage::ServerTypeResponse(server_id, server_response);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
             }
         }
     }
@@ -198,6 +204,25 @@ impl Client for ChatClient {
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
+            }
+            SimControllerCommand::RegisteredServers => {
+                let response = SimControllerMessage::RegisteredServersResponse(
+                    self.registered_servers.clone(),
+                );
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
+            }
+            SimControllerCommand::KnownServers => {
+                // All the registered servers are of type chat
+                let mut map = HashMap::new();
+                for (server_id, _) in self.available_clients.iter() {
+                    map.insert(*server_id, ServerType::Chat);
+                }
+                let response = SimControllerMessage::KnownServers(map);
                 self.sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
