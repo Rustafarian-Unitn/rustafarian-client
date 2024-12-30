@@ -228,6 +228,12 @@ impl Client for ChatClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            SimControllerCommand::AddSender(sender_id, sender_channel) => {
+                self.senders.insert(sender_id, sender_channel);
+            }
+            SimControllerCommand::RemoveSender(sender_id) => {
+                self.senders.remove(&sender_id);
+            }
             _ => {}
         }
     }
