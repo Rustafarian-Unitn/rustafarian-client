@@ -1,8 +1,6 @@
 #[cfg(test)]
 pub mod ack_test {
     use std::collections::HashMap;
-    use std::thread;
-    use std::time::Duration;
 
     use crossbeam_channel::{unbounded, Receiver, Sender};
     use rustafarian_shared::assembler::disassembler::Disassembler;

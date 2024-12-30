@@ -29,6 +29,7 @@ pub struct BrowserClient {
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
+    packets_to_send: HashMap<u64, Packet>,
 
     // Specific to browser client
     available_text_files: HashMap<NodeId, Vec<u8>>, // The text files available from Text Content Servers
@@ -58,6 +59,8 @@ impl BrowserClient {
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
             running: false,
+            packets_to_send: HashMap::new(),
+            
             available_text_files: HashMap::new(),
             available_media_files: HashMap::new(),
             obtained_text_files: HashMap::new(),
@@ -262,5 +265,9 @@ impl Client for BrowserClient {
 
     fn running(&mut self) -> &mut bool {
         &mut self.running
+    }
+    
+    fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
+        &mut self.packets_to_send
     }
 }

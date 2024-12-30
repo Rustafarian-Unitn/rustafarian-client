@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::thread;
 
 use rustafarian_shared::messages::commander_messages::{
     SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
@@ -52,6 +50,8 @@ pub trait Client: Send {
     fn send_server_type_request(&mut self, server_id: NodeId);
     /// Debug flag to stop the client from resending packets
     fn running(&mut self) -> &mut bool;
+    /// Packets that need to be sent, as the path couldn't be found. Key: session_id, Value: Packet
+    fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet>;
 
     /// Compose a message to send from a raw string
     fn compose_message(
@@ -115,6 +115,12 @@ pub trait Client: Send {
             .send(SimControllerResponseWrapper::Message(
                 SimControllerMessage::FloodResponse(flood_response.flood_id),
             ));
+
+        let packets_to_send = self.packets_to_send().clone();
+        for packet in packets_to_send {
+            self.send_packet(packet.1);
+        }
+        self.packets_to_send().clear();
     }
 
     /// When a fragment is received from a Drone
@@ -294,6 +300,14 @@ pub trait Client: Send {
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
         println!("Sending packet: {:?}", message.clone());
+        let planned_route = message.routing_header.hops.clone();
+
+        // There is no path to the destination
+        if planned_route.is_empty() {
+            self.packets_to_send().insert(message.session_id, message);
+            return;
+        }
+
         self.sent_packets()
             .entry(message.session_id)
             .or_default()

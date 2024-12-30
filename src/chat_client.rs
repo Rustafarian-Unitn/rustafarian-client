@@ -30,6 +30,7 @@ pub struct ChatClient {
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
+    packets_to_send: HashMap<u64, Packet>,
 
     // Chat-specific data
     available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
@@ -56,6 +57,7 @@ impl ChatClient {
             assembler: Assembler::new(),
             disassembler: Disassembler::new(),
             running: false,
+            packets_to_send: HashMap::new(),
             available_clients: HashMap::new(),
             registered_servers: vec![],
         }
@@ -244,5 +246,9 @@ impl Client for ChatClient {
 
     fn running(&mut self) -> &mut bool {
         &mut self.running
+    }
+    
+    fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
+        &mut self.packets_to_send
     }
 }
