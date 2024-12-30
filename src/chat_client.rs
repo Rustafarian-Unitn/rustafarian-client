@@ -130,7 +130,6 @@ impl ChatClient {
 impl Client for ChatClient {
     type RequestType = ChatRequestWrapper;
     type ResponseType = ChatResponseWrapper;
-    type SimControllerCommand = SimControllerCommand;
 
     fn client_id(&self) -> u8 {
         self.client_id
@@ -188,7 +187,7 @@ impl Client for ChatClient {
         &self.sim_controller_sender
     }
 
-    fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
+    fn handle_controller_commands(&mut self, command: SimControllerCommand) {
         match command {
             SimControllerCommand::SendMessage(message, server_id, to) => {
                 println!("Sending message to {} using {}", to, server_id);

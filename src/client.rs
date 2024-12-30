@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
+    SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper
 };
 use rustafarian_shared::topology::{compute_route, Topology};
 
@@ -20,7 +20,6 @@ pub static mut DEBUG: bool = false;
 pub trait Client: Send {
     type RequestType: Request;
     type ResponseType: Response;
-    type SimControllerCommand: DroneSend; // Commands received from the simcontroller
 
     /// Returns the client id
     fn client_id(&self) -> u8;
@@ -35,13 +34,13 @@ pub trait Client: Send {
     /// The topology of the network as the client knows
     fn topology(&mut self) -> &mut Topology;
     /// The channel where the simulation controller can send messages
-    fn sim_controller_receiver(&self) -> &Receiver<Self::SimControllerCommand>;
+    fn sim_controller_receiver(&self) -> &Receiver<SimControllerCommand>;
     /// The channel where the simulation controller can receive messages
     fn sim_controller_sender(&self) -> &Sender<SimControllerResponseWrapper>;
     /// Handle a response received from the server
     fn handle_response(&mut self, response: Self::ResponseType, sender_id: NodeId);
     /// Handle a command received from the simulation controller
-    fn handle_controller_commands(&mut self, command: Self::SimControllerCommand);
+    fn handle_controller_commands(&mut self, command: SimControllerCommand);
     /// Contains all the packets sent by the client, in case they need to be sent again
     fn sent_packets(&mut self) -> &mut HashMap<u64, Vec<Packet>>;
     /// Contains the count of all packets with a certain session_id that have been acked
@@ -257,7 +256,7 @@ pub trait Client: Send {
 
     fn handle_sim_controller_packets(
         &mut self,
-        packet: Result<Self::SimControllerCommand, crossbeam_channel::RecvError>,
+        packet: Result<SimControllerCommand, crossbeam_channel::RecvError>,
     ) {
         match packet {
             Ok(packet) => self.handle_controller_commands(packet),

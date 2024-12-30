@@ -160,7 +160,6 @@ impl BrowserClient {
 impl Client for BrowserClient {
     type RequestType = BrowserRequestWrapper;
     type ResponseType = BrowserResponseWrapper;
-    type SimControllerCommand = SimControllerCommand;
 
     fn client_id(&self) -> u8 {
         self.client_id
@@ -222,7 +221,7 @@ impl Client for BrowserClient {
         &self.sim_controller_sender
     }
 
-    fn handle_controller_commands(&mut self, command: Self::SimControllerCommand) {
+    fn handle_controller_commands(&mut self, command: SimControllerCommand) {
         match command {
             SimControllerCommand::RequestFileList(server_id) => {
                 self.request_file_list(server_id);
