@@ -291,44 +291,6 @@ pub trait Client: Send {
         *self.running() = false;
     }
 
-    /// If the ACK is not received in time, resend the packet recomputing the route
-    fn resend_packet_on_timeout(&mut self, mut packet: Packet, fragment_index: usize) {
-        if !*self.running() {
-            return;
-        }
-        let session_id = packet.session_id;
-        let destination_id = packet.routing_header.hops[packet.routing_header.len() - 1];
-        let client_id = self.client_id();
-        let new_route = Topology::get_routing_header(self.topology(), client_id, destination_id);
-        let sender = self.senders().get(&new_route.hops[1]).unwrap().clone();
-        let acked_packets = Arc::new(Mutex::new(self.acked_packets().clone()));
-        packet.routing_header = new_route;
-        thread::spawn({
-            let acked_packets = Arc::clone(&acked_packets);
-            move || {
-                thread::sleep(std::time::Duration::from_millis(
-                    rustafarian_shared::TIMEOUT_TIMER_MS,
-                ));
-                if !acked_packets.lock().unwrap().get(&session_id).unwrap()[fragment_index] {
-                    match sender.send(packet) {
-                        Ok(_) => {
-                            println!(
-                                "Client {}: Resending packet with session_id: {}",
-                                client_id, session_id
-                            );
-                        }
-                        Err(err) => {
-                            eprintln!(
-                                "Client {}: Error resending packet with session_id: {} - {:?}",
-                                client_id, session_id, err
-                            );
-                        }
-                    }
-                }
-            }
-        });
-    }
-
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
         println!("Sending packet: {:?}", message.clone());
@@ -341,7 +303,6 @@ pub trait Client: Send {
             self.acked_packets()
                 .entry(message.session_id)
                 .or_insert(vec![false; fragment.total_n_fragments as usize]);
-            self.resend_packet_on_timeout(message.clone(), fragment.fragment_index as usize);
         }
         let drone_id = message.routing_header.hops[1];
         let session_id = message.session_id;
