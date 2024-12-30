@@ -143,17 +143,13 @@ pub trait Client: Send {
         if !matches!(nack.nack_type, NackType::Dropped) {
             self.send_flood_request();
         }
-        if matches!(nack.nack_type, NackType::ErrorInRouting(_)) {
-            let error_id = match nack.nack_type {
-                NackType::ErrorInRouting(id) => id,
-                _ => panic!("Error in routing not found"),
-            };
+        if let NackType::ErrorInRouting(error_id) = nack.nack_type {
             self.topology().remove_node(error_id);
         }
         match self.sent_packets().get(&packet.session_id) {
             Some(sent_packets) => {
                 if (sent_packets.len() as u64) < nack.fragment_index {
-                    eprintln!("Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list: {:?}", nack.fragment_index, sent_packets);
+                    panic!("Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list: {:?}", nack.fragment_index, sent_packets);
                 }
                 let lost_packet = sent_packets
                     .get(nack.fragment_index as usize)
@@ -162,7 +158,7 @@ pub trait Client: Send {
                 self.send_packet(lost_packet);
             }
             None => {
-                eprintln!(
+                panic!(
                     "Packet with session_id: {} not found?! Packet list: {:?}",
                     packet.session_id,
                     self.sent_packets()
@@ -217,12 +213,11 @@ pub trait Client: Send {
     /// Handle a packet received from a drone based on the type
     fn on_drone_packet_received(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
         if packet.is_err() {
-            eprintln!(
+            panic!(
                 "Client {}: Error receiving packet: {:?}",
                 self.client_id(),
                 packet.err().unwrap()
             );
-            return;
         }
         let packet = packet.unwrap();
         // Notify the simulation controller that a packet has been received
@@ -261,7 +256,7 @@ pub trait Client: Send {
         match packet {
             Ok(packet) => self.handle_controller_commands(packet),
             Err(err) => {
-                eprintln!(
+                panic!(
                     "Client {}: Error receiving packet from the simulation controller: {:?}",
                     self.client_id(),
                     err
@@ -303,6 +298,11 @@ pub trait Client: Send {
 
         // There is no path to the destination
         if planned_route.is_empty() {
+            println!(
+                "Client {}: No path to destination for packet: {:?}",
+                self.client_id(),
+                message
+            );
             self.packets_to_send().insert(message.session_id, message);
             return;
         }
@@ -334,7 +334,7 @@ pub trait Client: Send {
                     ));
             }
             None => {
-                eprintln!(
+                panic!(
                     "Client {}: No sender found for client {}",
                     self.client_id(),
                     drone_id

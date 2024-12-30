@@ -134,4 +134,30 @@ pub mod test_running {
         assert_eq!(parsed_message.1, 1);
         assert_eq!(parsed_message.2, 3);
     }
+    
+
+    #[test]
+    fn test_run_topology() {
+        let neighbor: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let mut neighbors = HashMap::new();
+        neighbors.insert(2 as u8, neighbor.0.clone());
+        let channel: (Sender<Packet>, Receiver<Packet>) = unbounded();
+        let client_id = 1;
+
+        let controller_channel_commands = unbounded();
+        let controller_channel_messages = unbounded();
+
+        let mut chat_client = ChatClient::new(
+            client_id,
+            neighbors,
+            channel.1,
+            controller_channel_commands.1.clone(),
+            controller_channel_messages.0.clone(),
+        );
+
+        thread::spawn(move || {
+            chat_client.run(1);
+            assert!(chat_client.topology().edges().contains_key(&2));
+        });
+    }
 }

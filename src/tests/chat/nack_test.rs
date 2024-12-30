@@ -47,7 +47,12 @@ pub mod nack_test {
         };
 
         chat_client.on_drone_packet_received(Ok(packet));
+
+        assert!(!chat_client.topology().edges().contains_key(&2));
+
         let packet_received = neighbor.1.recv().unwrap();
+
+        println!("{:?}", packet_received);
 
         assert!(matches!(
             packet_received.pack_type,
