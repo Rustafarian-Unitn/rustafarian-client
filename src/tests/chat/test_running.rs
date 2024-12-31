@@ -62,6 +62,8 @@ pub mod test_running {
             chat_client.run(10);
         });
 
+        let _ = controller_channel_messages.1.recv(); // FloodRequestEvent
+
         channel.0.send(fake_packet).unwrap();
         let _pack_received_event = controller_channel_messages.1.recv().unwrap();
         let sim_received = controller_channel_messages.1.recv().unwrap();
@@ -100,6 +102,8 @@ pub mod test_running {
         thread::spawn(move || {
             chat_client.run(1);
         });
+        let _ = controller_channel_messages.1.recv(); // FloodRequestEvent
+        let _ = neighbor.1.recv(); // FloodRequest
 
         controller_channel_commands.0.send(sim_command).unwrap();
 
