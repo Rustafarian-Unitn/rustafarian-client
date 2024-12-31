@@ -18,8 +18,8 @@ pub static mut DEBUG: bool = false;
 
 /// A trait for a client that can send and receive messages
 pub trait Client: Send {
-    type RequestType: Request;
-    type ResponseType: Response;
+    type RequestType: Request; // Represents the type of request the client can send to the server
+    type ResponseType: Response; // Represents the type of response the client can receive from the server
 
     /// Returns the client id
     fn client_id(&self) -> u8;
@@ -52,7 +52,7 @@ pub trait Client: Send {
     /// Packets that need to be sent, as the path couldn't be found. Key: session_id, Value: Packet
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet>;
 
-    /// Compose a message to send from a raw string
+    /// Deserializes the raw content into the response type
     fn compose_message(
         &self,
         source_id: NodeId,
@@ -74,6 +74,7 @@ pub trait Client: Send {
         session_id: u64,
         raw_content: String,
     ) {
+        // Deserialize the raw content into the response type, then handle the response
         match self.compose_message(source_id, session_id, raw_content) {
             Ok(message) => self.handle_response(message.content, message.source_id),
             Err(str) => panic!("{}", str),
@@ -89,10 +90,13 @@ pub trait Client: Send {
             flood_response
         );
         for (i, node) in flood_response.path_trace.iter().enumerate() {
+            // Add the node to the topology if it doesn't exist
             if !self.topology().nodes().contains(&node.0) {
                 self.topology().add_node(node.0);
             }
+            // Add the edge between the current node and the previous node in the path trace
             if i > 0 {
+                // If the edge already exists, skip
                 if self
                     .topology()
                     .edges()
@@ -109,17 +113,19 @@ pub trait Client: Send {
             }
         }
 
+        // Notify the simulation controller that a flood response has been received
         let _res = self
             .sim_controller_sender()
             .send(SimControllerResponseWrapper::Message(
                 SimControllerMessage::FloodResponse(flood_response.flood_id),
             ));
 
+        // Send all the packets that couldn't be sent before
         let packets_to_send = self.packets_to_send().clone();
+        self.packets_to_send().clear();
         for packet in packets_to_send {
             self.send_packet(packet.1);
         }
-        self.packets_to_send().clear();
     }
 
     /// When a fragment is received from a Drone
