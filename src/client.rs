@@ -135,10 +135,12 @@ pub trait Client: Send {
         let fragment_index = fragment.fragment_index;
         // If the message is complete
         if let Some(message) = self.assembler().add_fragment(fragment, packet.session_id) {
+            // Convert the message to a string, then call on_text_response_arrived
             let message_str = String::from_utf8_lossy(&message);
             self.on_text_response_arrived(source_id, packet.session_id, message_str.to_string());
         }
         println!("Source_id: {}", source_id);
+        // After receiving a fragment, send an ACK to the source
         self.send_ack(fragment_index, source_id);
     }
 
@@ -146,12 +148,15 @@ pub trait Client: Send {
     /// Behavior: send a flood request to update the topology if the problem was in the routing
     /// Then, resend the packet
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
+        // If the NACK is not due to a dropped packet (so the topology was wrong/changed), send a flood request
         if !matches!(nack.nack_type, NackType::Dropped) {
             self.send_flood_request();
         }
+        // If the NACK is due to an error in routing (the node crashed), remove the node from the topology
         if let NackType::ErrorInRouting(error_id) = nack.nack_type {
             self.topology().remove_node(error_id);
         }
+        // Resend the packet
         match self.sent_packets().get(&packet.session_id) {
             Some(sent_packets) => {
                 if (sent_packets.len() as u64) < nack.fragment_index {
@@ -209,6 +214,7 @@ pub trait Client: Send {
             packet.session_id,
             request,
         );
+        // Send the flood request to all neighbors, aside from the sender
         for (neighbor_id, sender) in self.senders() {
             if neighbor_id != &sender_id {
                 sender.send(response.clone()).unwrap();
@@ -243,18 +249,22 @@ pub trait Client: Send {
             PacketType::FloodResponse(flood_response) => {
                 self.on_flood_response_received(flood_response);
             }
+            // Handle NACK (Negative Acknowledgment)
             PacketType::Nack(nack) => {
                 self.on_nack_received(packet, nack);
             }
+            // Handle ACK (Acknowledgment)
             PacketType::Ack(ack) => {
                 self.on_ack_received(packet, ack);
             }
+            // Handle flood request
             PacketType::FloodRequest(request) => {
                 self.on_flood_request_received(packet, request);
             }
         }
     }
 
+    /// Handle packets received from the simulation controller
     fn handle_sim_controller_packets(
         &mut self,
         packet: Result<SimControllerCommand, crossbeam_channel::RecvError>,
@@ -284,9 +294,11 @@ pub trait Client: Send {
         }
         println!("Client {} running", self.client_id());
         *self.running() = true;
-        self.send_flood_request(); // Send flood request on start, as the topology only contains the neighbors
+        // Send flood request on start, as the topology only contains the neighbors
+        self.send_flood_request(); 
         // Run the client for a certain number of ticks
         while ticks > 0 {
+            // Select the first available message from the receiver or the simulation controller receiver
             select_biased! {
                 recv(self.sim_controller_receiver()) -> packet => {
                     self.handle_sim_controller_packets(packet);
@@ -312,15 +324,18 @@ pub trait Client: Send {
                 self.client_id(),
                 message
             );
+            // Add the packet to the list of packets to send when receiving a flood response
             self.packets_to_send().insert(message.session_id, message);
             return;
         }
 
+        // Add the packet to the list of sent packets, in case it needs to be resent (due to nack)
         self.sent_packets()
             .entry(message.session_id)
             .or_default()
             .push(message.clone());
         let packet_type = message.pack_type.clone();
+        // The packet is a fragment, I need to receive the ACKs for all the fragments
         if let PacketType::MsgFragment(fragment) = packet_type.clone() {
             self.acked_packets()
                 .entry(message.session_id)
@@ -373,6 +388,7 @@ pub trait Client: Send {
         }
     }
 
+    /// Send an ACK (Acknowledgment) to a server after receiving a fragment
     fn send_ack(&mut self, fragment_index: u64, destination_id: u8) {
         let session_id = rand::random();
         let client_id = self.client_id();
@@ -406,6 +422,7 @@ pub trait Client: Send {
             };
             sender.1.send(packet).unwrap();
         }
+        // Notify the simulation controller that a flood request has been sent
         self.sim_controller_sender()
             .send(SimControllerResponseWrapper::Event(
                 SimControllerEvent::FloodRequestSent,
