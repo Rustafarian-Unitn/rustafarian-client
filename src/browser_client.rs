@@ -69,26 +69,31 @@ impl BrowserClient {
         }
     }
 
+    /// Requests a text file from a server
     pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {
         let request = BrowserRequestWrapper::Chat(BrowserRequest::TextFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
 
+    /// Requests a media file from a server
     pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {
         let request = BrowserRequestWrapper::Chat(BrowserRequest::MediaFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
 
+    /// Requests a list of files from a server
     pub fn request_file_list(&mut self, server_id: NodeId) {
         let request = BrowserRequestWrapper::Chat(BrowserRequest::FileList);
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
     }
 
+    /// Handle a response from a server
     fn handle_browser_response(&mut self, response: BrowserResponse, server_id: NodeId) {
         match response {
+            // If the response is a list of files, add it to the available files
             BrowserResponse::FileList(files) => {
                 match self.available_servers.get(&server_id) {
                     Some(server_type) => {
@@ -105,28 +110,33 @@ impl BrowserClient {
                 let files_str = String::from_utf8(files.clone()).unwrap();
                 println!("Files: {}", files_str);
 
+                // Send the list of files to the sim controller
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
                         SimControllerMessage::FileListResponse(files),
                     ));
             }
+            // If the response is a text file, add it to the obtained text files
             BrowserResponse::TextFile(file_id, text) => {
                 self.obtained_text_files
                     .insert((server_id, file_id), text.as_bytes().to_vec());
 
                 println!("Text: {}", text);
+                // Send the text file to the sim controller
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
                         SimControllerMessage::TextFileResponse(file_id, text),
                     ));
             }
+            // If the response is a media file, add it to the obtained media files
             BrowserResponse::MediaFile(file_id, media) => {
                 self.obtained_media_files
                     .insert((server_id, file_id), media.clone());
                 println!("Media: {:?}", media);
 
+                // Send the media file to the sim controller
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
@@ -177,11 +187,14 @@ impl Client for BrowserClient {
         &mut self.topology
     }
 
+    /// Handle a response from a server
     fn handle_response(&mut self, response: Self::ResponseType, server_id: NodeId) {
         match response {
+            // If the response is a normal BrowserResponse, handle it
             BrowserResponseWrapper::Chat(response) => {
                 self.handle_browser_response(response, server_id)
             }
+            // If the response is a ServerTypeResponse, handle it
             BrowserResponseWrapper::ServerType(server_response) => {
                 let ServerTypeResponse::ServerType(server_response) = server_response;
                 println!("Server response: {:?}", server_response);
@@ -197,6 +210,12 @@ impl Client for BrowserClient {
                     }
                     _ => {}
                 }
+                
+                // Send the server type response to the sim controller
+                let response = SimControllerMessage::ServerTypeResponse(server_id, server_response);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
             }
         }
     }
