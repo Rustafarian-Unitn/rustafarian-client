@@ -98,6 +98,9 @@ pub mod request_file_list {
             _ => panic!("Unexpected message"),
         }
 
+        // After that, it receives a ServerType message
+        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
+
         // Then, it receives the PacketSent for the ACK for that fragment, let's ignore it
         let _sim_controller_message = sim_controller_response.1.recv().unwrap();
 
@@ -197,6 +200,9 @@ pub mod request_file_list {
             },
             _ => panic!("Unexpected message"),
         }
+
+        // After that, it receives a ServerType message
+        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
 
         // Then, it receives the PacketSent for the ACK for that fragment, let's ignore it
         let _sim_controller_message = sim_controller_response.1.recv().unwrap();
