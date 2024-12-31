@@ -102,7 +102,13 @@ impl ChatClient {
         match response {
             ChatResponse::ClientList(client_list) => {
                 println!("Client list: {:?}", client_list);
-                self.available_clients.insert(server_id, client_list);
+                self.available_clients
+                    .insert(server_id, client_list.clone());
+                // Send info to the controller
+                let response = SimControllerMessage::ClientListResponse(server_id, client_list);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
             }
             ChatResponse::MessageFrom { from, message } => {
                 let s = match str::from_utf8(message.as_ref()) {
@@ -252,7 +258,7 @@ impl Client for ChatClient {
     fn running(&mut self) -> &mut bool {
         &mut self.running
     }
-    
+
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
         &mut self.packets_to_send
     }
