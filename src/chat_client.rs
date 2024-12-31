@@ -75,6 +75,7 @@ impl ChatClient {
         self.send_message(server_id, request_json);
     }
 
+    /// Send a chat message to another client
     pub fn send_chat_message(&mut self, server_id: NodeId, to: NodeId, message: String) {
         let chat_message = ChatRequestWrapper::Chat(ChatRequest::SendMessage {
             from: self.client_id,
@@ -85,6 +86,7 @@ impl ChatClient {
 
         self.send_message(server_id, chat_message_json.clone());
 
+        // Notify the controller that the message was sent
         let _res = self
             .sim_controller_sender
             .send(SimControllerResponseWrapper::Event(
@@ -92,14 +94,17 @@ impl ChatClient {
             ));
     }
 
+    /// Send a ClientList request to a server, asking for the clients registered to it
     pub fn send_client_list_req(&mut self, server_id: NodeId) {
         let request = ChatRequestWrapper::Chat(ChatRequest::ClientList);
         let request_json = serde_json::to_string(&request).unwrap();
         self.send_message(server_id, request_json);
     }
 
+    /// Handle a chat response from a server
     fn handle_chat_response(&mut self, response: ChatResponse, server_id: NodeId) {
         match response {
+            // If the response is a client list, add them to the available_clients for that server
             ChatResponse::ClientList(client_list) => {
                 println!("Client list: {:?}", client_list);
                 self.available_clients
@@ -110,29 +115,35 @@ impl ChatClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            // If the response is a message, print it, and send to the controller
             ChatResponse::MessageFrom { from, message } => {
                 let s = match str::from_utf8(message.as_ref()) {
                     Ok(v) => v,
                     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                 };
                 println!("Message from {}: {:?}", from, s);
+                // Send the message to the controller
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
                         SimControllerMessage::MessageReceived(server_id, from, s.to_string()),
                     ));
             }
+            // The message was sent correctly
             ChatResponse::MessageSent => {
                 println!("Message sent");
             }
+            // The client was registered correctly
             ChatResponse::ClientRegistered => {
                 println!("Client registered");
+                // Add the server to the list of registered servers
                 self.registered_servers.push(server_id);
             }
         };
     }
 }
 
+/// Implement default methods for the Client
 impl Client for ChatClient {
     type RequestType = ChatRequestWrapper;
     type ResponseType = ChatResponseWrapper;
@@ -193,21 +204,27 @@ impl Client for ChatClient {
         &self.sim_controller_sender
     }
 
+    /// Handle the commands sent by the controller
     fn handle_controller_commands(&mut self, command: SimControllerCommand) {
         match command {
+            // Send a message to a client
             SimControllerCommand::SendMessage(message, server_id, to) => {
                 println!("Sending message to {} using {}", to, server_id);
                 self.send_chat_message(server_id, to, message);
             }
+            // Register to a server
             SimControllerCommand::Register(server_id) => {
                 self.register(server_id);
             }
+            // Get the list of clients registered to a server
             SimControllerCommand::ClientList(server_id) => {
                 self.send_client_list_req(server_id);
             }
+            // Send a flood request
             SimControllerCommand::FloodRequest => {
                 self.send_flood_request();
             }
+            // Get the topology as seen by the client
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
@@ -215,6 +232,7 @@ impl Client for ChatClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            // Get the list of servers the client is registered to
             SimControllerCommand::RegisteredServers => {
                 let response = SimControllerMessage::RegisteredServersResponse(
                     self.registered_servers.clone(),
@@ -223,6 +241,7 @@ impl Client for ChatClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            // Get the list of known servers
             SimControllerCommand::KnownServers => {
                 // All the registered servers are of type chat
                 let mut map = HashMap::new();
@@ -234,9 +253,11 @@ impl Client for ChatClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            // Add a neighbor
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
                 self.senders.insert(sender_id, sender_channel);
             }
+            // Remove a neighbor
             SimControllerCommand::RemoveSender(sender_id) => {
                 self.senders.remove(&sender_id);
             }
@@ -248,6 +269,7 @@ impl Client for ChatClient {
         &mut self.acked_packets
     }
 
+    /// Send a ServerType request to a server
     fn send_server_type_request(&mut self, server_id: NodeId) {
         let request = ServerTypeRequest::ServerType;
         let request_wrapped = ChatRequestWrapper::ServerType(request);
