@@ -267,6 +267,7 @@ pub trait Client: Send {
 
     /// Run the client, listening for incoming messages
     fn run(&mut self, mut ticks: u64) {
+        // Add the neighbors to the topology
         if self.topology().edges().is_empty() {
             let senders = self.senders().clone();
             let client_id = self.client_id();
@@ -277,6 +278,8 @@ pub trait Client: Send {
         }
         println!("Client {} running", self.client_id());
         *self.running() = true;
+        self.send_flood_request(); // Send flood request on start, as the topology only contains the neighbors
+        // Run the client for a certain number of ticks
         while ticks > 0 {
             select_biased! {
                 recv(self.sim_controller_receiver()) -> packet => {
