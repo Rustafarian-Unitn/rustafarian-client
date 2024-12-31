@@ -271,7 +271,7 @@ impl Client for BrowserClient {
     fn running(&mut self) -> &mut bool {
         &mut self.running
     }
-    
+
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
         &mut self.packets_to_send
     }

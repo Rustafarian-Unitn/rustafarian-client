@@ -138,7 +138,6 @@ pub mod test_running {
         assert_eq!(parsed_message.1, 1);
         assert_eq!(parsed_message.2, 3);
     }
-    
 
     #[test]
     fn test_run_topology() {

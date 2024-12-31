@@ -17,8 +17,12 @@ pub mod server_type_test {
 
     #[test]
     fn test_server_type_request() {
-        let (mut browser_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
-            util::build_browser();
+        let (
+            mut browser_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
 
         browser_client.send_server_type_request(21);
 

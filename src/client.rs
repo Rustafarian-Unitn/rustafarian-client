@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rustafarian_shared::messages::commander_messages::{
-    SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper
+    SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
 use rustafarian_shared::topology::{compute_route, Topology};
 
@@ -295,7 +295,7 @@ pub trait Client: Send {
         println!("Client {} running", self.client_id());
         *self.running() = true;
         // Send flood request on start, as the topology only contains the neighbors
-        self.send_flood_request(); 
+        self.send_flood_request();
         // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver

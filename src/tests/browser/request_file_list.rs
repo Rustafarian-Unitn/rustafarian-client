@@ -240,5 +240,4 @@ pub mod request_file_list {
             _ => panic!("Unexpected message"),
         }
     }
-
 }
