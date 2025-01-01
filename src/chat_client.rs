@@ -241,6 +241,7 @@ impl Client for ChatClient {
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
+                println!("Sending topology response {:?}", response.clone());
                 self.sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
