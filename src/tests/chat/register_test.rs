@@ -1,43 +1,30 @@
 #[cfg(test)]
 pub mod register_test {
-    use rustafarian_shared::assembler::assembler::Assembler;
-    use rustafarian_shared::messages::chat_messages::ChatRequest;
-    use wg_2024::packet::{Fragment, PacketType};
+    use rustafarian_shared::messages::chat_messages::{
+        ChatRequest, ChatResponse, ChatResponseWrapper,
+    };
+    use rustafarian_shared::messages::general_messages::DroneSend;
+    use rustafarian_shared::{
+        assembler::assembler::Assembler, messages::chat_messages::ChatRequestWrapper,
+    };
+    use wg_2024::packet::PacketType;
 
-    use crate::{client::Client, tests::util};
+    use crate::client::Client;
+    use crate::tests::util;
 
     #[test]
     fn simple_register() {
         let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
             util::build_client();
 
-        let client_id = 1;
-        let register_request = ChatRequest::Register(client_id);
-        let register_serialized = serde_json::to_string(&register_request).unwrap();
-
-        // let mut fragments = disassembler.disassemble_message(register_serialized.as_bytes().to_vec(), 0);
-
-        chat_client.send_message(21, register_serialized.clone());
-
-        let expected_fragment = Fragment {
-            fragment_index: 0,
-            total_n_fragments: 1,
-            length: 14,
-            data: [
-                123, 34, 82, 101, 103, 105, 115, 116, 101, 114, 34, 58, 49, 125, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ],
-        };
+        chat_client.register(21);
 
         let received_fragment = neighbor.1.recv().unwrap();
 
-        assert_eq!(
+        assert!(matches!(
             received_fragment.clone().pack_type,
-            PacketType::MsgFragment(expected_fragment)
-        );
+            PacketType::MsgFragment(_)
+        ));
 
         let mut assembler = Assembler::new();
 
@@ -47,10 +34,18 @@ pub mod register_test {
         };
 
         let reassembled_message = assembler.add_fragment(fragment, received_fragment.session_id);
+        let binding = reassembled_message.unwrap();
+        let reassembled_json = String::from_utf8_lossy(&binding);
 
-        assert_eq!(
-            reassembled_message.unwrap(),
-            register_serialized.as_bytes().to_vec()
-        );
+        let registered = ChatRequestWrapper::Chat(ChatRequest::Register(1));
+        let registered_json = registered.stringify();
+
+        assert_eq!(reassembled_json, registered_json);
+
+        let register_response = ChatResponseWrapper::Chat(ChatResponse::ClientRegistered);
+
+        chat_client.handle_response(register_response, 21);
+
+        assert!(chat_client.get_registered_servers().contains(&21));
     }
 }

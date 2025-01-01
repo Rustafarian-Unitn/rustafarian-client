@@ -144,6 +144,16 @@ impl ChatClient {
             }
         };
     }
+
+    /// Get the servers the client is registered to
+    pub fn get_registered_servers(&mut self) -> &mut Vec<NodeId> {
+        &mut self.registered_servers
+    }
+
+    /// Get the available servers
+    pub fn get_available_clients(&mut self) -> &mut HashMap<NodeId, Vec<NodeId>> {
+        &mut self.available_clients
+    }
 }
 
 /// Implement default methods for the Client
