@@ -242,18 +242,23 @@ impl Client for BrowserClient {
 
     fn handle_controller_commands(&mut self, command: SimControllerCommand) {
         match command {
+            // If the command is a request for the file list, send the request
             SimControllerCommand::RequestFileList(server_id) => {
                 self.request_file_list(server_id);
             }
+            // If the command is a request for a text file, send the request
             SimControllerCommand::RequestTextFile(file_id, server_id) => {
                 self.request_text_file(file_id, server_id);
             }
+            // If the command is a request for a media file, send the request
             SimControllerCommand::RequestMediaFile(file_id, server_id) => {
                 self.request_media_file(file_id, server_id);
             }
+            // If the command is a flood request, send the request
             SimControllerCommand::FloodRequest => {
                 self.send_flood_request();
             }
+            // If the command is a topology request, send the topology
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
@@ -261,15 +266,18 @@ impl Client for BrowserClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            // If the command is to add a neighbor, add the neighbor to the map and the topology
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
                 self.senders.insert(sender_id, sender_channel);
                 self.topology.add_node(sender_id);
                 self.topology.add_edge(self.client_id, sender_id);
             }
+            // If the command is to remove a neighbor, remove the neighbor from the map and the topology
             SimControllerCommand::RemoveSender(sender_id) => {
                 self.senders.remove(&sender_id);
                 self.topology.remove_node(sender_id);
             }
+            // Commands related to the Chat Client
             _ => {
                 eprintln!(
                     "Requesting Chat Client commands on Browser Client?! ({:?})",
