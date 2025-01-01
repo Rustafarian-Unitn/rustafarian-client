@@ -1,5 +1,6 @@
 #[cfg(test)]
 pub mod request_file_list {
+    use crossbeam_channel::{unbounded, Sender};
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
@@ -154,5 +155,49 @@ pub mod request_file_list {
         let unhandled_request = SimControllerCommand::ClientList(21);
 
         browser_client.handle_sim_controller_packets(Ok(unhandled_request));
+    }
+
+    #[test]
+    fn add_sender_request() {
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        let new_neighbor: Sender<Packet> = unbounded().0;
+
+        let as_request = SimControllerCommand::AddSender(3, new_neighbor);
+
+        chat_client.handle_sim_controller_packets(Ok(as_request));
+
+        assert!(chat_client.senders().contains_key(&3));
+
+        assert!(chat_client.topology().nodes().contains(&3));
+        assert!(chat_client.topology().edges().contains_key(&1));
+        assert!(chat_client.topology().edges().contains_key(&3));
+        assert!(chat_client.topology().edges().get(&1).unwrap().contains(&3));
+    }
+
+    #[test]
+    fn remove_sender_request() {
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        let as_request = SimControllerCommand::RemoveSender(2);
+
+        chat_client.handle_sim_controller_packets(Ok(as_request));
+
+        assert!(!chat_client.senders().contains_key(&2));
+
+        assert!(!chat_client.topology().nodes().contains(&2));
+        assert!(chat_client.topology().edges().contains_key(&1));
+        assert!(!chat_client.topology().edges().contains_key(&2));
+        assert!(!chat_client.topology().edges().get(&1).unwrap().contains(&2));
     }
 }
