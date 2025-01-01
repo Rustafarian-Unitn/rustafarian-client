@@ -32,11 +32,17 @@ pub struct BrowserClient {
     packets_to_send: HashMap<u64, Packet>,
 
     // Specific to browser client
-    available_text_files: HashMap<NodeId, Vec<u8>>, // The text files available from Text Content Servers
-    available_media_files: HashMap<NodeId, Vec<u8>>, // The media files available from Media Content Servers
-    obtained_text_files: HashMap<(NodeId, u8), Vec<u8>>, // The text files obtained from Text Content Servers. The key is a tuple of (server_id, file_id)
-    obtained_media_files: HashMap<(NodeId, u8), Vec<u8>>, // The media files obtained from Media Content Servers. The key is a tuple of (server_id, file_id)
-    available_servers: HashMap<NodeId, ServerType>, // The servers available to the browser client
+    
+    /// The text files available from Text Content Servers
+    available_text_files: HashMap<NodeId, Vec<u8>>, 
+    /// The media files available from Media Content Servers
+    available_media_files: HashMap<NodeId, Vec<u8>>, 
+    /// The text files obtained from Text Content Servers. The key is a tuple of (server_id, file_id)
+    obtained_text_files: HashMap<(NodeId, u8), Vec<u8>>, 
+    /// The media files obtained from Media Content Servers. The key is a tuple of (server_id, file_id)
+    obtained_media_files: HashMap<(NodeId, u8), Vec<u8>>, 
+    /// The servers available to the browser client
+    available_servers: HashMap<NodeId, ServerType>, 
 }
 
 impl BrowserClient {

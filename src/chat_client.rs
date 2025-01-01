@@ -33,8 +33,10 @@ pub struct ChatClient {
     packets_to_send: HashMap<u64, Packet>,
 
     // Chat-specific data
-    available_clients: HashMap<NodeId, Vec<NodeId>>, // Key: server_id, value: list of client ids
-    registered_servers: Vec<NodeId>,                 // List of servers the client is registered to
+    /// Key: server_id, value: list of client ids
+    available_clients: HashMap<NodeId, Vec<NodeId>>, 
+    /// List of servers the client is registered to
+    registered_servers: Vec<NodeId>,                 
 }
 
 impl ChatClient {
@@ -58,6 +60,7 @@ impl ChatClient {
             disassembler: Disassembler::new(),
             running: false,
             packets_to_send: HashMap::new(),
+            
             available_clients: HashMap::new(),
             registered_servers: vec![],
         }
