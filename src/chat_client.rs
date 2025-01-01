@@ -219,6 +219,7 @@ impl Client for ChatClient {
 
     /// Handle the commands sent by the controller
     fn handle_controller_commands(&mut self, command: SimControllerCommand) {
+        println!("Handling command {:?}", command);
         match command {
             // Send a message to a client
             SimControllerCommand::SendMessage(message, server_id, to) => {
