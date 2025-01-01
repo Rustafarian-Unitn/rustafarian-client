@@ -263,9 +263,12 @@ impl Client for BrowserClient {
             }
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
                 self.senders.insert(sender_id, sender_channel);
+                self.topology.add_node(sender_id);
+                self.topology.add_edge(self.client_id, sender_id);
             }
             SimControllerCommand::RemoveSender(sender_id) => {
                 self.senders.remove(&sender_id);
+                self.topology.remove_node(sender_id);
             }
             _ => {
                 eprintln!(

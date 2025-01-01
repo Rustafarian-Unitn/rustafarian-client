@@ -256,10 +256,13 @@ impl Client for ChatClient {
             // Add a neighbor
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
                 self.senders.insert(sender_id, sender_channel);
+                self.topology.add_node(sender_id);
+                self.topology.add_edge(self.client_id, sender_id);
             }
             // Remove a neighbor
             SimControllerCommand::RemoveSender(sender_id) => {
                 self.senders.remove(&sender_id);
+                self.topology.remove_node(sender_id);
             }
             _ => {}
         }
