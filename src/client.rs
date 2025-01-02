@@ -131,6 +131,11 @@ pub trait Client: Send {
     /// When a fragment is received from a Drone
     /// Behavior: recompose the original message from the fragments. If the message is completed, call on_text_response_arrived
     fn on_fragment_received(&mut self, packet: Packet, fragment: Fragment) {
+        println!(
+            "Client {}: Received fragment {}",
+            self.client_id(),
+            fragment.fragment_index
+        );
         let source_id = packet.routing_header.hops[0];
         let fragment_index = fragment.fragment_index;
         // If the message is complete
@@ -148,6 +153,11 @@ pub trait Client: Send {
     /// Behavior: send a flood request to update the topology if the problem was in the routing
     /// Then, resend the packet
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
+        println!(
+            "Client {}: Received NACK for fragment {}",
+            self.client_id(),
+            nack.fragment_index
+        );
         // If the NACK is not due to a dropped packet (so the topology was wrong/changed), send a flood request
         if !matches!(nack.nack_type, NackType::Dropped) {
             self.send_flood_request();
@@ -182,6 +192,11 @@ pub trait Client: Send {
     /// Behavior: Increase the count of ACKs received for that session ID by 1.
     /// If the count is equal to the number of packets sent with that session ID, remove the session ID from the ACKed packets list
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
+        println!(
+            "Client {}: Received ACK for fragment {}",
+            self.client_id(),
+            ack.fragment_index
+        );
         // Increase the count of acked packets for this session ID
         self.acked_packets()
             .entry(packet.session_id)
@@ -207,6 +222,11 @@ pub trait Client: Send {
 
     /// On flood request received: add itself to the request, then forward to all neighbors
     fn on_flood_request_received(&mut self, packet: Packet, mut request: FloodRequest) {
+        println!(
+            "Client {}: Received flood request: {:?}",
+            self.client_id(),
+            request
+        );
         let sender_id = request.path_trace.last().unwrap().0;
         request.increment(self.client_id(), NodeType::Client);
         let response = Packet::new_flood_request(
@@ -310,11 +330,16 @@ pub trait Client: Send {
             ticks -= 1;
         }
         *self.running() = false;
+        println!("Client {} stopped", self.client_id());
     }
 
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet) {
-        println!("Sending packet: {:?}", message.clone());
+        println!(
+            "[Client {}] Sending packet: {:?}",
+            self.client_id(),
+            message.clone()
+        );
         let planned_route = message.routing_header.hops.clone();
 
         // There is no path to the destination
@@ -369,6 +394,11 @@ pub trait Client: Send {
 
     /// Send a text message to a server
     fn send_message(&mut self, destination_id: u8, message: String) {
+        println!(
+            "Client {}: Sending text message to server {}",
+            self.client_id(),
+            destination_id
+        );
         let session_id = rand::random();
         let fragments = self
             .deassembler()
@@ -400,12 +430,12 @@ pub trait Client: Send {
                 hops: compute_route(self.topology(), client_id, destination_id),
             },
         };
-        println!("Sending packet: {:?}", packet.clone());
         self.send_packet(packet);
     }
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
+        println!("Client {}: Sending flood request", self.client_id());
         let self_id = self.client_id();
         for sender in self.senders() {
             let packet = Packet {

@@ -76,6 +76,10 @@ impl BrowserClient {
 
     /// Requests a text file from a server
     pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {
+        println!(
+            "Client {} requesting text file {} from server {}",
+            self.client_id, file_id, server_id
+        );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::TextFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
@@ -83,6 +87,10 @@ impl BrowserClient {
 
     /// Requests a media file from a server
     pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {
+        println!(
+            "Client {} requesting media file {} from server {}",
+            self.client_id, file_id, server_id
+        );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::MediaFileRequest(file_id));
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
@@ -90,6 +98,10 @@ impl BrowserClient {
 
     /// Requests a list of files from a server
     pub fn request_file_list(&mut self, server_id: NodeId) {
+        println!(
+            "Client {} requesting file list from server {}",
+            self.client_id, server_id
+        );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::FileList);
         let request_json = request.stringify();
         self.send_message(server_id, request_json);
@@ -113,7 +125,10 @@ impl BrowserClient {
                     }
                 }
                 let files_str = String::from_utf8(files.clone()).unwrap();
-                println!("Files: {}", files_str);
+                println!(
+                    "Client {} received file list: {}",
+                    self.client_id, files_str
+                );
 
                 // Send the list of files to the sim controller
                 let _res = self
@@ -127,7 +142,7 @@ impl BrowserClient {
                 self.obtained_text_files
                     .insert((server_id, file_id), text.as_bytes().to_vec());
 
-                println!("Text: {}", text);
+                println!("Client {} received text file: {}", self.client_id, text);
                 // Send the text file to the sim controller
                 let _res = self
                     .sim_controller_sender
@@ -139,7 +154,7 @@ impl BrowserClient {
             BrowserResponse::MediaFile(file_id, media) => {
                 self.obtained_media_files
                     .insert((server_id, file_id), media.clone());
-                println!("Media: {:?}", media);
+                println!("Client {} received media file: {:?}", self.client_id, media);
 
                 // Send the media file to the sim controller
                 let _res = self
@@ -249,22 +264,33 @@ impl Client for BrowserClient {
         match command {
             // If the command is a request for the file list, send the request
             SimControllerCommand::RequestFileList(server_id) => {
+                println!("COMMAND: Requesting file list from server {}", server_id);
                 self.request_file_list(server_id);
             }
             // If the command is a request for a text file, send the request
             SimControllerCommand::RequestTextFile(file_id, server_id) => {
+                println!(
+                    "COMMAND: Requesting text file {} from server {}",
+                    file_id, server_id
+                );
                 self.request_text_file(file_id, server_id);
             }
             // If the command is a request for a media file, send the request
             SimControllerCommand::RequestMediaFile(file_id, server_id) => {
+                println!(
+                    "COMMAND: Requesting media file {} from server {}",
+                    file_id, server_id
+                );
                 self.request_media_file(file_id, server_id);
             }
             // If the command is a flood request, send the request
             SimControllerCommand::FloodRequest => {
+                println!("COMMAND: Sending flood request");
                 self.send_flood_request();
             }
             // If the command is a topology request, send the topology
             SimControllerCommand::Topology => {
+                println!("COMMAND: Sending topology");
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
                 self.sim_controller_sender
@@ -273,12 +299,14 @@ impl Client for BrowserClient {
             }
             // If the command is to add a neighbor, add the neighbor to the map and the topology
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
+                println!("COMMAND: Adding sender {}", sender_id);
                 self.senders.insert(sender_id, sender_channel);
                 self.topology.add_node(sender_id);
                 self.topology.add_edge(self.client_id, sender_id);
             }
             // If the command is to remove a neighbor, remove the neighbor from the map and the topology
             SimControllerCommand::RemoveSender(sender_id) => {
+                println!("COMMAND: Removing sender {}", sender_id);
                 self.senders.remove(&sender_id);
                 self.topology.remove_node(sender_id);
             }
@@ -297,6 +325,10 @@ impl Client for BrowserClient {
     }
 
     fn send_server_type_request(&mut self, server_id: NodeId) {
+        println!(
+            "Client {} sending server type request to server {}",
+            self.client_id, server_id
+        );
         let request = ServerTypeRequest::ServerType;
         let request_wrapped = BrowserRequestWrapper::ServerType(request);
         let request_json = request_wrapped.stringify();
