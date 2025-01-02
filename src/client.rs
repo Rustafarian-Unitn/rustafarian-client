@@ -166,8 +166,9 @@ pub trait Client: Send {
     /// Then, resend the packet
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
         println!(
-            "Client {}: Received NACK for fragment {}",
+            "Client {}: Received NACK ({:?}) for fragment {}",
             self.client_id(),
+            nack,
             nack.fragment_index
         );
         // If the NACK is not due to a dropped packet (so the topology was wrong/changed), send a flood request
