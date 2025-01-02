@@ -292,7 +292,7 @@ impl Client for BrowserClient {
             SimControllerCommand::Topology => {
                 println!("COMMAND: Sending topology {:?} dsa", self.topology);
                 let topology = self.topology.clone();
-                let response = SimControllerMessage::TopologyResponse(topology);
+                let response = SimControllerMessage::MessageReceived(1, 2, "dsa".to_string());
                 match self.sim_controller_sender()
                     .send(SimControllerResponseWrapper::Message(response)) {
                         Ok(_) => {
