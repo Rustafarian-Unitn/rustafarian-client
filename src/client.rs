@@ -54,6 +54,8 @@ pub trait Client: Send {
     fn packets_to_send(&mut self) -> &mut HashMap<u8, Packet>;
     /// The list of flood ids that have been sent
     fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
+    /// Whether there is a flood request in progress
+    fn flood_in_progress(&mut self) -> &mut bool;
 
     /// Deserializes the raw content into the response type
     fn compose_message(
@@ -92,6 +94,7 @@ pub trait Client: Send {
             self.client_id(),
             flood_response
         );
+        *self.flood_in_progress() = false;
         for (i, node) in flood_response.path_trace.iter().enumerate() {
             // Add the node to the topology if it doesn't exist
             if !self.topology().nodes().contains(&node.0) {
@@ -452,6 +455,10 @@ pub trait Client: Send {
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
+        if *self.flood_in_progress() {
+            return;
+        }
+        *self.flood_in_progress() = true;
         println!("Client {}: Sending flood request", self.client_id());
         let self_id = self.client_id();
         let flood_id = rand::random();
