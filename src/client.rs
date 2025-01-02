@@ -51,6 +51,8 @@ pub trait Client: Send {
     fn running(&mut self) -> &mut bool;
     /// Packets that need to be sent, as the path couldn't be found. Key: session_id, Value: Packet
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet>;
+    /// The list of flood ids that have been sent
+    fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
 
     /// Deserializes the raw content into the response type
     fn compose_message(
@@ -267,7 +269,13 @@ pub trait Client: Send {
             }
             // Handle flood response
             PacketType::FloodResponse(flood_response) => {
+                let flood_id = flood_response.flood_id;
                 self.on_flood_response_received(flood_response);
+                if !self.sent_flood_ids().contains(&flood_id) {
+                    let mut new_packet = packet.clone();
+                    new_packet.routing_header.increase_hop_index();
+                    self.send_packet(new_packet);
+                }
             }
             // Handle NACK (Negative Acknowledgment)
             PacketType::Nack(nack) => {
@@ -437,11 +445,13 @@ pub trait Client: Send {
     fn send_flood_request(&mut self) {
         println!("Client {}: Sending flood request", self.client_id());
         let self_id = self.client_id();
+        let flood_id = rand::random();
+        self.sent_flood_ids().push(flood_id);
         for sender in self.senders() {
             let packet = Packet {
                 pack_type: PacketType::FloodRequest(FloodRequest {
                     initiator_id: self.client_id(),
-                    flood_id: rand::random(),
+                    flood_id: flood_id,
                     path_trace: vec![(self_id, NodeType::Client)],
                 }),
                 session_id: rand::random(),

@@ -30,6 +30,7 @@ pub struct BrowserClient {
     disassembler: Disassembler,
     running: bool,
     packets_to_send: HashMap<u64, Packet>,
+    sent_flood_ids: Vec<u64>,
 
     // Specific to browser client
     /// The text files available from Text Content Servers
@@ -65,6 +66,7 @@ impl BrowserClient {
             disassembler: Disassembler::new(),
             running: false,
             packets_to_send: HashMap::new(),
+            sent_flood_ids: Vec::new(),
 
             available_text_files: HashMap::new(),
             available_media_files: HashMap::new(),
@@ -290,8 +292,8 @@ impl Client for BrowserClient {
             }
             // If the command is a topology request, send the topology
             SimControllerCommand::Topology => {
-                println!("COMMAND: Sending topology");
                 let topology = self.topology.clone();
+                println!("COMMAND: Sending topology {:?}", topology);
                 let response = SimControllerMessage::TopologyResponse(topology);
                 self.sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(response))
@@ -341,5 +343,9 @@ impl Client for BrowserClient {
 
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
         &mut self.packets_to_send
+    }
+    
+    fn sent_flood_ids(&mut self) -> &mut Vec<u64> {
+        &mut self.sent_flood_ids
     }
 }

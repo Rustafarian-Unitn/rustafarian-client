@@ -31,6 +31,7 @@ pub struct ChatClient {
     disassembler: Disassembler,
     running: bool,
     packets_to_send: HashMap<u64, Packet>,
+    sent_flood_ids: Vec<u64>,
 
     // Chat-specific data
     /// Key: server_id, value: list of client ids
@@ -60,6 +61,7 @@ impl ChatClient {
             disassembler: Disassembler::new(),
             running: false,
             packets_to_send: HashMap::new(),
+            sent_flood_ids: Vec::new(),
 
             available_clients: HashMap::new(),
             registered_servers: vec![],
@@ -255,7 +257,7 @@ impl Client for ChatClient {
             }
             // Get the topology as seen by the client
             SimControllerCommand::Topology => {
-                println!("COMMAND: Getting topology");
+                println!("COMMAND: Sending topology");
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
                 self.sim_controller_sender
@@ -324,5 +326,9 @@ impl Client for ChatClient {
 
     fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
         &mut self.packets_to_send
+    }
+    
+    fn sent_flood_ids(&mut self) -> &mut Vec<u64> {
+        &mut self.sent_flood_ids
     }
 }
