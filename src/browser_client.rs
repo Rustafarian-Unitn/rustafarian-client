@@ -221,6 +221,8 @@ impl Client for BrowserClient {
             // If the response is a ServerTypeResponse, handle it
             BrowserResponseWrapper::ServerType(server_response) => {
                 let ServerTypeResponse::ServerType(server_response) = server_response;
+                self.topology()
+                    .set_node_type(server_id, format!("{:?}", server_response));
                 println!("Server response: {:?}", server_response);
                 // If it's not a chat server, add it to the available servers (as a key of available_files)
                 match server_response {
@@ -350,7 +352,7 @@ impl Client for BrowserClient {
     fn sent_flood_ids(&mut self) -> &mut Vec<u64> {
         &mut self.sent_flood_ids
     }
-    
+
     fn flood_in_progress(&mut self) -> &mut bool {
         &mut self.flood_in_progress
     }

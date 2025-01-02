@@ -200,6 +200,8 @@ impl Client for ChatClient {
             ChatResponseWrapper::ServerType(server_response) => {
                 println!("Server response: {:?}", server_response);
                 let ServerTypeResponse::ServerType(server_response) = server_response;
+                self.topology()
+                    .set_node_type(server_id, format!("{:?}", server_response));
                 // If it's a chat server, add it to the available servers (as a key of available_clients)
                 if let ServerType::Chat = server_response {
                     self.available_clients.insert(server_id, vec![]);
@@ -333,7 +335,7 @@ impl Client for ChatClient {
     fn sent_flood_ids(&mut self) -> &mut Vec<u64> {
         &mut self.sent_flood_ids
     }
-    
+
     fn flood_in_progress(&mut self) -> &mut bool {
         &mut self.flood_in_progress
     }

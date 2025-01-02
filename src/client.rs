@@ -117,6 +117,10 @@ pub trait Client: Send {
                 self.topology()
                     .add_edge(node.0, flood_response.path_trace[i - 1].0);
             }
+
+            if NodeType::Server == node.1 && self.topology().get_node_type(node.0) == None {
+                self.send_server_type_request(node.0);
+            }
         }
 
         // Notify the simulation controller that a flood response has been received
