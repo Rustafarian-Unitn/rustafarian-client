@@ -269,6 +269,7 @@ pub trait Client: Send {
         &mut self,
         packet: Result<SimControllerCommand, crossbeam_channel::RecvError>,
     ) {
+        println!("Client {}: Received packet from the simulation controller {:?}", self.client_id(), packet);
         match packet {
             Ok(packet) => self.handle_controller_commands(packet),
             Err(err) => {
