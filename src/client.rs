@@ -13,6 +13,8 @@ use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
 };
+
+use crate::client;
 pub const FRAGMENT_DSIZE: usize = 128;
 pub static mut DEBUG: bool = false;
 
@@ -126,7 +128,13 @@ pub trait Client: Send {
         let packets_to_send = self.packets_to_send().clone();
         self.packets_to_send().clear();
         for packet in packets_to_send {
-            self.send_packet(packet.1);
+            // First, update the routing header with the new topology
+            let mut new_packet = packet.1.clone();
+            let client_id = self.client_id();
+            let destination_id = new_packet.routing_header.get_reversed().hops[0];
+            new_packet.routing_header.hops =
+                compute_route(self.topology(), client_id, destination_id);
+            self.send_packet(new_packet);
         }
     }
 
@@ -451,7 +459,7 @@ pub trait Client: Send {
             let packet = Packet {
                 pack_type: PacketType::FloodRequest(FloodRequest {
                     initiator_id: self.client_id(),
-                    flood_id: flood_id,
+                    flood_id,
                     path_trace: vec![(self_id, NodeType::Client)],
                 }),
                 session_id: rand::random(),
