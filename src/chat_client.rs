@@ -30,7 +30,7 @@ pub struct ChatClient {
     assembler: Assembler,
     disassembler: Disassembler,
     running: bool,
-    packets_to_send: HashMap<u64, Packet>,
+    packets_to_send: HashMap<u8, Packet>,
     sent_flood_ids: Vec<u64>,
 
     // Chat-specific data
@@ -324,10 +324,10 @@ impl Client for ChatClient {
         &mut self.running
     }
 
-    fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet> {
+    fn packets_to_send(&mut self) -> &mut HashMap<u8, Packet> {
         &mut self.packets_to_send
     }
-    
+
     fn sent_flood_ids(&mut self) -> &mut Vec<u64> {
         &mut self.sent_flood_ids
     }

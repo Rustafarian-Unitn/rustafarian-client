@@ -163,9 +163,9 @@ pub mod error_tests {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet);
+        chat_client.send_packet(packet, 21);
 
-        assert!(chat_client.packets_to_send().contains_key(&0));
+        assert!(chat_client.packets_to_send().contains_key(&21));
     }
 
     #[test]
@@ -198,6 +198,6 @@ pub mod error_tests {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet);
+        chat_client.send_packet(packet, 21);
     }
 }

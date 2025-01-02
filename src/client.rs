@@ -50,8 +50,8 @@ pub trait Client: Send {
     fn send_server_type_request(&mut self, server_id: NodeId);
     /// Debug flag to stop the client from resending packets
     fn running(&mut self) -> &mut bool;
-    /// Packets that need to be sent, as the path couldn't be found. Key: session_id, Value: Packet
-    fn packets_to_send(&mut self) -> &mut HashMap<u64, Packet>;
+    /// Packets that need to be sent, as the path couldn't be found. Key: the destination id, Value: the packet
+    fn packets_to_send(&mut self) -> &mut HashMap<u8, Packet>;
     /// The list of flood ids that have been sent
     fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
 
@@ -130,10 +130,10 @@ pub trait Client: Send {
             // First, update the routing header with the new topology
             let mut new_packet = packet.1.clone();
             let client_id = self.client_id();
-            let destination_id = new_packet.routing_header.get_reversed().hops[0];
+            let destination_id = packet.0;
             new_packet.routing_header.hops =
                 compute_route(self.topology(), client_id, destination_id);
-            self.send_packet(new_packet);
+            self.send_packet(new_packet, destination_id);
         }
     }
 
@@ -185,7 +185,8 @@ pub trait Client: Send {
                     .get(nack.fragment_index as usize)
                     .unwrap()
                     .clone();
-                self.send_packet(lost_packet);
+                let destination_id = lost_packet.routing_header.get_reversed().hops[0];
+                self.send_packet(lost_packet, destination_id);
             }
             None => {
                 panic!(
@@ -281,7 +282,8 @@ pub trait Client: Send {
                 if !self.sent_flood_ids().contains(&flood_id) {
                     let mut new_packet = packet.clone();
                     new_packet.routing_header.increase_hop_index();
-                    self.send_packet(new_packet);
+                    let destination_id = new_packet.routing_header.get_reversed().hops[0];
+                    self.send_packet(new_packet, destination_id);
                 }
             }
             // Handle NACK (Negative Acknowledgment)
@@ -349,7 +351,7 @@ pub trait Client: Send {
     }
 
     /// Send a packet to a server
-    fn send_packet(&mut self, message: Packet) {
+    fn send_packet(&mut self, message: Packet, destination_id: u8) {
         println!(
             "[Client {}] Sending packet: {:?}",
             self.client_id(),
@@ -365,7 +367,7 @@ pub trait Client: Send {
                 message
             );
             // Add the packet to the list of packets to send when receiving a flood response
-            self.packets_to_send().insert(message.session_id, message);
+            self.packets_to_send().insert(destination_id, message);
             return;
         }
 
@@ -429,7 +431,7 @@ pub trait Client: Send {
                     hops: compute_route(self.topology(), client_id, destination_id),
                 },
             };
-            self.send_packet(packet);
+            self.send_packet(packet, destination_id);
         }
     }
 
@@ -445,7 +447,7 @@ pub trait Client: Send {
                 hops: compute_route(self.topology(), client_id, destination_id),
             },
         };
-        self.send_packet(packet);
+        self.send_packet(packet, destination_id);
     }
 
     /// Send flood request to the neighbors

@@ -77,7 +77,7 @@ pub mod ack_test {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet.clone());
+        chat_client.send_packet(packet.clone(), 21);
         assert!(chat_client.sent_packets().contains_key(&0));
 
         chat_client.on_drone_packet_received(Ok(Packet {
@@ -123,8 +123,8 @@ pub mod ack_test {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet.clone());
-        chat_client.send_packet(packet.clone());
+        chat_client.send_packet(packet.clone(), 21);
+        chat_client.send_packet(packet.clone(), 21);
         assert!(chat_client.sent_packets().contains_key(&0));
 
         chat_client.on_drone_packet_received(Ok(Packet {
@@ -179,7 +179,7 @@ pub mod ack_test {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet.clone());
+        chat_client.send_packet(packet.clone(), 21);
 
         assert!(matches!(
             neighbor.1.recv().unwrap().pack_type,
@@ -230,7 +230,7 @@ pub mod ack_test {
             session_id: 0,
         };
 
-        chat_client.send_packet(packet.clone());
+        chat_client.send_packet(packet.clone(), 21);
 
         chat_client.topology().add_node(2);
         chat_client.topology().add_node(3);

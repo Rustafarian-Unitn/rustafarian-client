@@ -73,7 +73,7 @@ pub mod flooding_test {
             },
             session_id: 0,
         };
-
+        chat_client.sent_flood_ids().push(0);
         chat_client.on_drone_packet_received(Ok(packet));
 
         assert_eq!(
