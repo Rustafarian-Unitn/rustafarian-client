@@ -1,4 +1,14 @@
-# Rustafarian Client: Chat
+# Rustafarian Client
+
+This is the client-side for the project for the course "Advanced Programming", at UniTN (University of Trento), a.y. 2024/2025.
+
+The projects consists of other repositories as well:
+
+- [rustafarian-drone](https://github.com/Rustafarian-Unitn/rustafarian-drone): The drone, used to forward messages and handle the flood requests;
+- [rustafarian-controller](https://github.com/Rustafarian-Unitn/rustafarian-controller): The backend for the Simulation Controller, used to initialize the network;
+- [rustafarian-front-end](https://github.com/Rustafarian-Unitn/rustafarian-front-end): The frontend for the Simulation Controller, shows the network and can send commands to the nodes;
+- [rustafarian-content-server](https://github.com/Rustafarian-Unitn/rustafarian-content_server): The content server, used to communicate with the Browser Client;
+- [rustafarian-chat-server](https://github.com/Rustafarian-Unitn/rustafarian-chat-server): The chat server, used to communicate between Chat Clients;
 
 ## Getting Started
 
@@ -10,8 +20,8 @@ rustafarian-client = { git="https://github.com/Rustafarian-Unitn/rustafarian-cli
 
 The two structs to instantiate are:
 
-- ```src/browser_client.rs``: Browser client, used to communicate with Browser Servers;
-- ```src/chat_client.rs```: Chat client, used to communicate with Client Servers;
+- `src/browser_client.rs`: Browser client, used to communicate with Browser Servers;
+- `src/chat_client.rs`: Chat client, used to communicate with Client Servers;
 
 ## Structure
 
@@ -41,7 +51,7 @@ The arguments are:
 
 Rigorous unit testing was executed to ensure that the client worked correctly. All the tests are located in the `./src/tests`, and are divided between chat and browser.
 
-According to the tool Tarpaulin (`./tarpaulin-report.html`), at the time of writing (02/01/2025), the unit test coverage is as follows:
+According to the tool [Tarpaulin](https://github.com/xd009642/tarpaulin) (`./tarpaulin-report.html`), at the time of writing (02/01/2025), the unit test coverage is as follows:
 
 - `src/client.rs`: 196/222 (88.29%)
 - `src/browser_client.rs`: 158/168 (94.05%)
