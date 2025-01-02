@@ -290,7 +290,7 @@ impl Client for BrowserClient {
             }
             // If the command is a topology request, send the topology
             SimControllerCommand::Topology => {
-                println!("COMMAND: Sending topology");
+                println!("COMMAND: Sending topology {:?}", self.topology);
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
                 match self.sim_controller_sender
