@@ -293,9 +293,15 @@ impl Client for BrowserClient {
                 println!("COMMAND: Sending topology");
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                match self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response)) {
+                        Ok(_) => {
+                            println!("Topology response sent");
+                        },
+                        Err(e) => {
+                            eprintln!("Error sending topology response: {:?}", e);
+                        }
+                    };
             }
             // If the command is to add a neighbor, add the neighbor to the map and the topology
             SimControllerCommand::AddSender(sender_id, sender_channel) => {

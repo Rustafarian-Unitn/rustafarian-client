@@ -255,7 +255,7 @@ impl Client for ChatClient {
             }
             // Get the topology as seen by the client
             SimControllerCommand::Topology => {
-                println!("COMMAND: Getting topology");
+                println!("COMMAND: Sending topology");
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
                 self.sim_controller_sender
