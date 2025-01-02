@@ -119,7 +119,7 @@ pub trait Client: Send {
             }
 
             if NodeType::Server == node.1 && self.topology().get_node_type(node.0) == None {
-                self.topology().set_label(node.0, "Server".to_string());
+                self.topology().set_node_type(node.0, "Server".to_string());
                 self.send_server_type_request(node.0);
             }
         }
