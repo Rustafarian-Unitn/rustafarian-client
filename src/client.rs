@@ -14,7 +14,6 @@ use wg_2024::{
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
 };
 
-use crate::client;
 pub const FRAGMENT_DSIZE: usize = 128;
 pub static mut DEBUG: bool = false;
 
@@ -382,7 +381,7 @@ pub trait Client: Send {
                 .entry(message.session_id)
                 .or_insert(vec![false; fragment.total_n_fragments as usize]);
         }
-        let drone_id = message.routing_header.hops[1];
+        let drone_id = message.routing_header.hops[message.routing_header.hop_index as usize];
         let session_id = message.session_id;
         match self.senders().get(&drone_id) {
             Some(sender) => {
