@@ -126,7 +126,10 @@ impl ChatClient {
         match response {
             // If the response is a client list, add them to the available_clients for that server
             ChatResponse::ClientList(client_list) => {
-                println!("Client list: {:?}", client_list);
+                println!(
+                    "Client {} received client list: {:?} from {}",
+                    self.client_id, client_list, server_id
+                );
                 self.available_clients
                     .insert(server_id, client_list.clone());
                 // Send info to the controller
@@ -141,7 +144,10 @@ impl ChatClient {
                     Ok(v) => v,
                     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                 };
-                println!("Message from {}: {:?}", from, s);
+                println!(
+                    "Client {} received message from {}: {}",
+                    self.client_id, from, s
+                );
                 // Send the message to the controller
                 let _res = self
                     .sim_controller_sender
@@ -151,11 +157,11 @@ impl ChatClient {
             }
             // The message was sent correctly
             ChatResponse::MessageSent => {
-                println!("Message sent");
+                println!("Client {} message sent from {}", self.client_id, server_id);
             }
             // The client was registered correctly
             ChatResponse::ClientRegistered => {
-                println!("Client registered");
+                println!("Client {} registered to {}", self.client_id, server_id);
                 // Add the server to the list of registered servers
                 self.registered_servers.push(server_id);
             }
@@ -198,8 +204,11 @@ impl Client for ChatClient {
         match response {
             ChatResponseWrapper::Chat(response) => self.handle_chat_response(response, server_id),
             ChatResponseWrapper::ServerType(server_response) => {
-                println!("Server response: {:?}", server_response);
                 let ServerTypeResponse::ServerType(server_response) = server_response;
+                println!(
+                    "Client {} received server type: {:?} from {:?}",
+                    self.client_id, server_response, server_id
+                );
                 self.topology()
                     .set_node_type(server_id, format!("{:?}", server_response));
                 // If it's a chat server, add it to the available servers (as a key of available_clients)

@@ -130,8 +130,8 @@ impl BrowserClient {
                 }
                 let files_str = String::from_utf8(files.clone()).unwrap();
                 println!(
-                    "Client {} received file list: {}",
-                    self.client_id, files_str
+                    "Client {} received file list from server {}: {}",
+                    self.client_id, server_id, files_str
                 );
 
                 // Send the list of files to the sim controller
@@ -146,7 +146,10 @@ impl BrowserClient {
                 self.obtained_text_files
                     .insert((server_id, file_id), text.as_bytes().to_vec());
 
-                println!("Client {} received text file: {}", self.client_id, text);
+                println!(
+                    "Client {} received text file from {}: {}",
+                    self.client_id, server_id, text
+                );
                 // Send the text file to the sim controller
                 let _res = self
                     .sim_controller_sender
@@ -158,7 +161,10 @@ impl BrowserClient {
             BrowserResponse::MediaFile(file_id, media) => {
                 self.obtained_media_files
                     .insert((server_id, file_id), media.clone());
-                println!("Client {} received media file: {:?}", self.client_id, media);
+                println!(
+                    "Client {} received media file from server {}: {:?}",
+                    self.client_id, server_id, media
+                );
 
                 // Send the media file to the sim controller
                 let _res = self
@@ -223,7 +229,10 @@ impl Client for BrowserClient {
                 let ServerTypeResponse::ServerType(server_response) = server_response;
                 self.topology()
                     .set_node_type(server_id, format!("{:?}", server_response));
-                println!("Server response: {:?}", server_response);
+                println!(
+                    "Client {} received server type: {:?} from {:?}",
+                    self.client_id, server_response, server_id
+                );
                 // If it's not a chat server, add it to the available servers (as a key of available_files)
                 match server_response {
                     ServerType::Text => {
