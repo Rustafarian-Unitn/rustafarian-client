@@ -243,7 +243,12 @@ impl Client for BrowserClient {
                         self.available_servers.insert(server_id, ServerType::Media);
                         self.available_media_files.insert(server_id, vec![]);
                     }
-                    _ => {}
+                    _ => {
+                        println!(
+                            "Client {}: Server type 'Chat' not added to available servers",
+                            self.client_id
+                        );
+                    }
                 }
 
                 // Send the server type response to the sim controller
@@ -327,7 +332,10 @@ impl Client for BrowserClient {
             }
             // If the command wants the servers known by the client, send the known servers
             SimControllerCommand::KnownServers => {
-                println!("COMMAND: Sending known servers");
+                println!(
+                    "COMMAND: Sending known servers ({:?})",
+                    self.available_servers
+                );
                 let known_servers = self.available_servers.clone();
                 let response = SimControllerMessage::KnownServers(known_servers);
                 self.sim_controller_sender
