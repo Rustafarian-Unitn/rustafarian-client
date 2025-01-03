@@ -32,7 +32,7 @@ pub struct ChatClient {
     running: bool,
     packets_to_send: HashMap<u8, Packet>,
     sent_flood_ids: Vec<u64>,
-    flood_in_progress: bool,
+    last_flood_timestamp: u128,
 
     // Chat-specific data
     /// Key: server_id, value: list of client ids
@@ -63,7 +63,7 @@ impl ChatClient {
             running: false,
             packets_to_send: HashMap::new(),
             sent_flood_ids: Vec::new(),
-            flood_in_progress: false,
+            last_flood_timestamp: 0,
 
             available_clients: HashMap::new(),
             registered_servers: vec![],
@@ -336,7 +336,7 @@ impl Client for ChatClient {
         &mut self.sent_flood_ids
     }
 
-    fn flood_in_progress(&mut self) -> &mut bool {
-        &mut self.flood_in_progress
+    fn last_flood_timestamp(&mut self) -> &mut u128 {
+        &mut self.last_flood_timestamp
     }
 }

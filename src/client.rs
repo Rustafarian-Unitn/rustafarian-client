@@ -55,7 +55,7 @@ pub trait Client: Send {
     /// The list of flood ids that have been sent
     fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
     /// Whether there is a flood request in progress
-    fn flood_in_progress(&mut self) -> &mut bool;
+    fn last_flood_timestamp(&mut self) -> &mut u128;
 
     /// Deserializes the raw content into the response type
     fn compose_message(
@@ -94,7 +94,6 @@ pub trait Client: Send {
             self.client_id(),
             flood_response
         );
-        *self.flood_in_progress() = false;
         for (i, node) in flood_response.path_trace.iter().enumerate() {
             // Add the node to the topology if it doesn't exist
             if !self.topology().nodes().contains(&node.0) {
@@ -463,10 +462,18 @@ pub trait Client: Send {
 
     /// Send flood request to the neighbors
     fn send_flood_request(&mut self) {
-        if *self.flood_in_progress() {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let timeout = rustafarian_shared::TIMEOUT_BETWEEN_FLOODS_MS as u128;
+        // Return if the flood was started less than 500 ms ago
+        if *self.last_flood_timestamp() + timeout > now {
             return;
         }
-        *self.flood_in_progress() = true;
+        // Set the last flood timestamp to the current time
+        *self.last_flood_timestamp() = now;
+
         println!("Client {}: Sending flood request", self.client_id());
         let self_id = self.client_id();
         let flood_id = rand::random();

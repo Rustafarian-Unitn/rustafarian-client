@@ -31,7 +31,7 @@ pub struct BrowserClient {
     running: bool,
     packets_to_send: HashMap<u8, Packet>,
     sent_flood_ids: Vec<u64>,
-    flood_in_progress: bool,
+    last_flood_timestamp: u128,
 
     // Specific to browser client
     /// The text files available from Text Content Servers
@@ -68,7 +68,7 @@ impl BrowserClient {
             running: false,
             packets_to_send: HashMap::new(),
             sent_flood_ids: Vec::new(),
-            flood_in_progress: false,
+            last_flood_timestamp: 0,
 
             available_text_files: HashMap::new(),
             available_media_files: HashMap::new(),
@@ -362,7 +362,7 @@ impl Client for BrowserClient {
         &mut self.sent_flood_ids
     }
 
-    fn flood_in_progress(&mut self) -> &mut bool {
-        &mut self.flood_in_progress
+    fn last_flood_timestamp(&mut self) -> &mut u128 {
+        &mut self.last_flood_timestamp
     }
 }
