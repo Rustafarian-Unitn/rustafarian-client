@@ -371,9 +371,11 @@ pub trait Client: Send {
         // There is no path to the destination
         if planned_route.is_empty() {
             println!(
-                "Client {}: No path to destination for packet: {:?}",
+                "Client {}: No path to destination ({}) for packet: {:?}, current topology: {:?}",
                 self.client_id(),
-                message
+                destination_id,
+                message,
+                self.topology()
             );
             // Add the packet to the list of packets to send when receiving a flood response
             self.packets_to_send().insert(destination_id, message);
