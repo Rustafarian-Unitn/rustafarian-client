@@ -316,6 +316,15 @@ impl Client for BrowserClient {
                 self.senders.remove(&sender_id);
                 self.topology.remove_node(sender_id);
             }
+            // If the command wants the servers known by the client, send the known servers
+            SimControllerCommand::KnownServers => {
+                println!("COMMAND: Sending known servers");
+                let known_servers = self.available_servers.clone();
+                let response = SimControllerMessage::KnownServers(known_servers);
+                self.sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response))
+                    .unwrap();
+            }
             // Commands related to the Chat Client
             _ => {
                 eprintln!(
