@@ -172,7 +172,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared#5d4eca13172b4c7679a65d513f76bd1be1e07931"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared#2a3918b1916d7214f3029775830596aef300b212"
 dependencies = [
  "crossbeam-channel",
  "serde",

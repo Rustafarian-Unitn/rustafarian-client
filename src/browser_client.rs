@@ -342,6 +342,10 @@ impl Client for BrowserClient {
                     .send(SimControllerResponseWrapper::Message(response))
                     .unwrap();
             }
+            SimControllerCommand::RequestServerType(server_id) => {
+                println!("COMMAND: Requesting server type from server {}", server_id);
+                self.send_server_type_request(server_id);
+            }
             // Commands related to the Chat Client
             _ => {
                 eprintln!(

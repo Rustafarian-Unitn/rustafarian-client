@@ -313,6 +313,10 @@ impl Client for ChatClient {
                 self.senders.remove(&sender_id);
                 self.topology.remove_node(sender_id);
             }
+            SimControllerCommand::RequestServerType(server_id) => {
+                println!("COMMAND: Requesting server type from server {}", server_id);
+                self.send_server_type_request(server_id);
+            }
             _ => {}
         }
     }
