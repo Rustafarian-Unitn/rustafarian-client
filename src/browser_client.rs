@@ -137,7 +137,7 @@ impl BrowserClient {
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::FileListResponse(files),
+                        SimControllerMessage::FileListResponse(server_id, files),
                     ));
             }
             // If the response is a text file, add it to the obtained text files

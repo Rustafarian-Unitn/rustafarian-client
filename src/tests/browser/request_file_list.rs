@@ -120,7 +120,7 @@ pub mod request_file_list {
 
         match sim_controller_message {
             SimControllerResponseWrapper::Message(message) => match message {
-                SimControllerMessage::FileListResponse(files) => {
+                SimControllerMessage::FileListResponse(21, files) => {
                     assert_eq!(files, vec![1, 2, 3, 4, 5]);
                 }
                 _ => panic!("Unexpected message"),
@@ -223,7 +223,7 @@ pub mod request_file_list {
 
         match sim_controller_message {
             SimControllerResponseWrapper::Message(message) => match message {
-                SimControllerMessage::FileListResponse(files) => {
+                SimControllerMessage::FileListResponse(21, files) => {
                     assert_eq!(files, vec![1, 2, 3, 4, 5]);
                 }
                 _ => panic!("Unexpected message"),
