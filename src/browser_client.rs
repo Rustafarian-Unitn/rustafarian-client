@@ -128,10 +128,9 @@ impl BrowserClient {
                         eprintln!("Server type not found for server_id: {}", server_id);
                     }
                 }
-                let files_str = String::from_utf8(files.clone()).unwrap();
                 println!(
-                    "Client {} received file list from server {}: {}",
-                    self.client_id, server_id, files_str
+                    "Client {} received file list from server {}: {:?}",
+                    self.client_id, server_id, files
                 );
 
                 // Send the list of files to the sim controller
