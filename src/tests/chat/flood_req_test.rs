@@ -31,6 +31,7 @@ pub mod flood_req_test {
             channel.1,
             unbounded().1,
             unbounded().0,
+            false,
         );
 
         chat_client.topology().add_node(2);

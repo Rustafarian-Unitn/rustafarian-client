@@ -209,6 +209,7 @@ pub mod ack_test {
             channel.1,
             controller_channel_commands.1.clone(),
             controller_channel_messages.0.clone(),
+            false,
         );
 
         let message = ChatRequest::SendMessage {

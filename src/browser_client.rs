@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::client::Client;
+use crate::utils::Utils;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::browser_messages::{
     BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
@@ -32,6 +33,7 @@ pub struct BrowserClient {
     packets_to_send: HashMap<u8, Packet>,
     sent_flood_ids: Vec<u64>,
     last_flood_timestamp: u128,
+    utils: Utils,
 
     // Specific to browser client
     /// The text files available from Text Content Servers
@@ -59,6 +61,7 @@ impl BrowserClient {
         receiver: Receiver<Packet>,
         sim_controller_receiver: Receiver<SimControllerCommand>,
         sim_controller_sender: Sender<SimControllerResponseWrapper>,
+        debug: bool,
     ) -> Self {
         BrowserClient {
             client_id,
@@ -75,6 +78,7 @@ impl BrowserClient {
             packets_to_send: HashMap::new(),
             sent_flood_ids: Vec::new(),
             last_flood_timestamp: 0,
+            utils: Utils::new(client_id, debug, "BrowserClient".to_string()),
 
             available_text_files: HashMap::new(),
             available_media_files: HashMap::new(),
@@ -179,8 +183,8 @@ impl BrowserClient {
                 self.obtained_media_files
                     .insert((server_id, file_id), media.clone());
                 println!(
-                    "Client {} received media file from server {}: {:?}",
-                    self.client_id, server_id, media
+                    "Client {} received media file from server {}",
+                    self.client_id, server_id
                 );
 
                 // Check if the media file is referenced in a text file
@@ -209,7 +213,10 @@ impl BrowserClient {
         let mut completed_text_files = vec![];
         for (file_id, references) in self.pending_referenced_files.iter_mut() {
             if references.contains(file_id) {
-                println!("Client {}: Media file {} is a reference", self.client_id, file_id);
+                println!(
+                    "Client {}: Media file {} is a reference",
+                    self.client_id, file_id
+                );
                 is_reference = true;
                 // Remove the reference from the pending_referenced_files map
                 references.remove(file_id);
@@ -262,7 +269,7 @@ impl BrowserClient {
                     ),
                 ));
         }
-        return is_reference;
+        is_reference
     }
 
     /// If there is any reference to media files in the text file, request the media files
@@ -559,5 +566,9 @@ impl Client for BrowserClient {
 
     fn last_flood_timestamp(&mut self) -> &mut u128 {
         &mut self.last_flood_timestamp
+    }
+
+    fn util(&self) -> &crate::utils::Utils {
+        &self.utils
     }
 }

@@ -14,6 +14,8 @@ use wg_2024::{
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
 };
 
+use crate::utils::{LogLevel, Utils};
+
 pub const FRAGMENT_DSIZE: usize = 128;
 pub static mut DEBUG: bool = false;
 
@@ -56,6 +58,8 @@ pub trait Client: Send {
     fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
     /// Whether there is a flood request in progress
     fn last_flood_timestamp(&mut self) -> &mut u128;
+    /// Utility functions
+    fn util(&self) -> &Utils;
 
     /// Deserializes the raw content into the response type
     fn compose_message(
@@ -89,10 +93,9 @@ pub trait Client: Send {
     /// When a FloodResponse is received from a Drone
     /// Behavior: Add the nodes to the topology, and add the edges based on the order of the hops
     fn on_flood_response_received(&mut self, flood_response: FloodResponse) {
-        println!(
-            "Client {} received FloodResponse: {:?}",
-            self.client_id(),
-            flood_response
+        self.util().log(
+            &format!("Received FloodResponse: {:?}", flood_response),
+            LogLevel::DEBUG,
         );
         for (i, node) in flood_response.path_trace.iter().enumerate() {
             // Add the node to the topology if it doesn't exist
@@ -147,10 +150,13 @@ pub trait Client: Send {
     /// When a fragment is received from a Drone
     /// Behavior: recompose the original message from the fragments. If the message is completed, call on_text_response_arrived
     fn on_fragment_received(&mut self, packet: Packet, fragment: Fragment) {
-        println!(
-            "Client {}: Received fragment {}",
-            self.client_id(),
-            fragment.fragment_index
+        self.util().log(
+            &format!(
+                "Received fragment {} from {}",
+                fragment.fragment_index,
+                packet.routing_header.get_reversed().hops[0]
+            ),
+            LogLevel::DEBUG,
         );
         let source_id = packet.routing_header.hops[0];
         let fragment_index = fragment.fragment_index;
@@ -169,11 +175,12 @@ pub trait Client: Send {
     /// Behavior: send a flood request to update the topology if the problem was in the routing
     /// Then, resend the packet
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
-        println!(
-            "Client {}: Received NACK ({:?}) for fragment {}",
-            self.client_id(),
-            nack,
-            nack.fragment_index
+        self.util().log(
+            &format!(
+                "Received NACK ({:?}) for fragment {}",
+                nack.nack_type, nack.fragment_index
+            ),
+            LogLevel::DEBUG,
         );
         // If the NACK is not due to a dropped packet (so the topology was wrong/changed), send a flood request
         if !matches!(nack.nack_type, NackType::Dropped) {
@@ -240,10 +247,9 @@ pub trait Client: Send {
 
     /// On flood request received: add itself to the request, then forward to all neighbors
     fn on_flood_request_received(&mut self, packet: Packet, mut request: FloodRequest) {
-        println!(
-            "Client {}: Received flood request: {:?}",
-            self.client_id(),
-            request
+        self.util().log(
+            &format!("Received flood request: {:?}", request),
+            LogLevel::DEBUG,
         );
         let sender_id = request.path_trace.last().unwrap().0;
         request.increment(self.client_id(), NodeType::Client);
@@ -337,7 +343,7 @@ pub trait Client: Send {
                 self.topology().add_edge(client_id, sender_id);
             }
         }
-        println!("Client {} running", self.client_id());
+        self.util().log("Client running", LogLevel::INFO);
         *self.running() = true;
         // Send flood request on start, as the topology only contains the neighbors
         self.send_flood_request();
@@ -355,26 +361,26 @@ pub trait Client: Send {
             ticks -= 1;
         }
         *self.running() = false;
-        println!("Client {} stopped", self.client_id());
+        self.util().log("Client stopped", LogLevel::INFO);
     }
 
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet, destination_id: u8) {
-        println!(
-            "[Client {}] Sending packet: {:?}",
-            self.client_id(),
-            message.clone()
+        self.util().log(
+            &format!("Sending packet {:?} to server {}", message, destination_id),
+            LogLevel::DEBUG,
         );
         let planned_route = message.routing_header.hops.clone();
 
         // There is no path to the destination
         if planned_route.is_empty() {
-            println!(
-                "Client {}: No path to destination ({}) for packet: {:?}, current topology: {:?}",
-                self.client_id(),
-                destination_id,
-                message,
-                self.topology()
+            let topology = self.topology().clone();
+            self.util().log(
+                &format!(
+                    "No path to destination ({}) for packet: {:?}, current topology: {:?}",
+                    destination_id, message, topology
+                ),
+                LogLevel::DEBUG,
             );
             // Add the packet to the list of packets to send when receiving a flood response
             self.packets_to_send().insert(destination_id, message);
@@ -421,10 +427,13 @@ pub trait Client: Send {
 
     /// Send a text message to a server
     fn send_message(&mut self, destination_id: u8, message: String) {
-        println!(
-            "Client {}: Sending text message to server {}",
-            self.client_id(),
-            destination_id
+        self.util().log(
+            &format!(
+                "Client {}: Sending text message to server {}",
+                self.client_id(),
+                destination_id
+            ),
+            LogLevel::DEBUG,
         );
         let session_id = rand::random();
         let fragments = self
@@ -447,6 +456,15 @@ pub trait Client: Send {
 
     /// Send an ACK (Acknowledgment) to a server after receiving a fragment
     fn send_ack(&mut self, fragment_index: u64, destination_id: u8) {
+        self.util().log(
+            &format!(
+                "Client {}: Sending ACK for fragment {} to server {}",
+                self.client_id(),
+                fragment_index,
+                destination_id
+            ),
+            LogLevel::DEBUG,
+        );
         let session_id = rand::random();
         let client_id = self.client_id();
         let packet = Packet {
@@ -474,7 +492,7 @@ pub trait Client: Send {
         // Set the last flood timestamp to the current time
         *self.last_flood_timestamp() = now;
 
-        println!("Client {}: Sending flood request", self.client_id());
+        self.util().log("Sending flood request", LogLevel::DEBUG);
         let self_id = self.client_id();
         let flood_id = rand::random();
         self.sent_flood_ids().push(flood_id);

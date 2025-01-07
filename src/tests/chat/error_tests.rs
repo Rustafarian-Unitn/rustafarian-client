@@ -182,6 +182,7 @@ pub mod error_tests {
             channel.1,
             controller_channel_commands.1.clone(),
             controller_channel_messages.0.clone(),
+            false,
         );
 
         chat_client.topology().add_node(2);

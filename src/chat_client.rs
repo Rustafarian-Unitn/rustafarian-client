@@ -2,6 +2,7 @@ use core::str;
 use std::collections::HashMap;
 
 use crate::client::Client;
+use crate::utils::Utils;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::chat_messages::{
     ChatRequest, ChatRequestWrapper, ChatResponse, ChatResponseWrapper,
@@ -33,6 +34,7 @@ pub struct ChatClient {
     packets_to_send: HashMap<u8, Packet>,
     sent_flood_ids: Vec<u64>,
     last_flood_timestamp: u128,
+    utils: Utils,
 
     // Chat-specific data
     /// Key: server_id, value: list of client ids
@@ -48,6 +50,7 @@ impl ChatClient {
         receiver: Receiver<Packet>,
         sim_controller_receiver: Receiver<SimControllerCommand>,
         sim_controller_sender: Sender<SimControllerResponseWrapper>,
+        debug: bool,
     ) -> Self {
         ChatClient {
             client_id,
@@ -64,6 +67,7 @@ impl ChatClient {
             packets_to_send: HashMap::new(),
             sent_flood_ids: Vec::new(),
             last_flood_timestamp: 0,
+            utils: Utils::new(client_id, debug, "ChatClient".to_string()),
 
             available_clients: HashMap::new(),
             registered_servers: vec![],
@@ -351,5 +355,9 @@ impl Client for ChatClient {
 
     fn last_flood_timestamp(&mut self) -> &mut u128 {
         &mut self.last_flood_timestamp
+    }
+
+    fn util(&self) -> &Utils {
+        &self.utils
     }
 }

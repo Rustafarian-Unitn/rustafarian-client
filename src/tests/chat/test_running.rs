@@ -31,6 +31,7 @@ pub mod test_running {
             channel.1,
             controller_channel_commands.1,
             controller_channel_messages.0,
+            false,
         );
 
         chat_client.topology().add_node(2);
@@ -90,6 +91,7 @@ pub mod test_running {
             channel.1,
             controller_channel_commands.1.clone(),
             controller_channel_messages.0.clone(),
+            false,
         );
 
         chat_client.topology().add_node(2);
@@ -156,6 +158,7 @@ pub mod test_running {
             channel.1,
             controller_channel_commands.1.clone(),
             controller_channel_messages.0.clone(),
+            false,
         );
 
         thread::spawn(move || {
