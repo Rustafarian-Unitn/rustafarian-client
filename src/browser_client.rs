@@ -198,6 +198,7 @@ impl BrowserClient {
             .iter()
             .find(|s| matches!(s.1, ServerType::Media));
 
+        // If no media server is found, skip the text file
         if server_id.is_none() {
             println!(
                 "Client {}: No media server found in available servers",
@@ -218,6 +219,7 @@ impl BrowserClient {
         let first_line = first_line.unwrap();
         let has_reference = first_line.starts_with("ref=");
 
+        // If the text file does not have a reference, skip it
         if !has_reference {
             println!(
                 "Client {}: Text file does not have a reference",
@@ -228,15 +230,29 @@ impl BrowserClient {
 
         let references = first_line.split('=').collect::<Vec<&str>>()[1];
         let references = references.split(',').collect::<Vec<&str>>();
-
+        // Request all the media files referenced in the text file
         for reference in references {
             let reference = reference.parse::<u8>();
             if reference.is_err() {
                 println!("Client {}: Invalid reference in text file", self.client_id);
                 continue;
             }
-
             let reference = reference.unwrap();
+            // If the media file is already obtained, skip it
+            if self
+                .obtained_media_files
+                .keys()
+                .find(|k| k.1 == reference)
+                .is_some()
+            {
+                println!(
+                    "Client {}: Media file {} already obtained",
+                    self.client_id, reference
+                );
+                continue;
+            }
+
+            // Request the media file
             self.request_media_file(reference, *server_id);
         }
     }
