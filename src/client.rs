@@ -117,7 +117,7 @@ pub trait Client: Send {
                     .add_edge(node.0, flood_response.path_trace[i - 1].0);
             }
 
-            if NodeType::Server == node.1 && self.topology().get_node_type(node.0) == None {
+            if NodeType::Server == node.1 && self.topology().get_node_type(node.0).is_none() {
                 self.topology().set_node_type(node.0, "Server".to_string());
                 self.send_server_type_request(node.0);
             }
@@ -393,7 +393,7 @@ pub trait Client: Send {
                 .entry(message.session_id)
                 .or_insert(vec![false; fragment.total_n_fragments as usize]);
         }
-        let drone_id = message.routing_header.hops[message.routing_header.hop_index as usize];
+        let drone_id = message.routing_header.hops[message.routing_header.hop_index];
         let session_id = message.session_id;
         match self.senders().get(&drone_id) {
             Some(sender) => {

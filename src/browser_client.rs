@@ -192,9 +192,9 @@ impl BrowserClient {
                 // Browse the pending referenced files and check if the obtained media file is referenced
                 let mut completed_text_files = vec![];
                 for (file_id, references) in self.pending_referenced_files.iter_mut() {
-                    if references.contains(&file_id) {
+                    if references.contains(file_id) {
                         // Remove the reference from the pending_referenced_files map
-                        references.remove(&file_id);
+                        references.remove(file_id);
                         // If there are no more references, add the file_id to the completed_text_files
                         if references.is_empty() {
                             completed_text_files.push(*file_id);
@@ -300,12 +300,7 @@ impl BrowserClient {
             }
             let reference = reference.unwrap();
             // If the media file is already obtained, skip it
-            if self
-                .obtained_media_files
-                .keys()
-                .find(|k| k.1 == reference)
-                .is_some()
-            {
+            if self.obtained_media_files.keys().any(|k| k.1 == reference) {
                 println!(
                     "Client {}: Media file {} already obtained",
                     self.client_id, reference
@@ -322,7 +317,7 @@ impl BrowserClient {
             // Add the references to the references_files map
             self.references_files
                 .entry(reference)
-                .or_insert(HashSet::new())
+                .or_default()
                 .insert(file_id);
 
             // Request the media file
