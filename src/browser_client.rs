@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
@@ -39,11 +39,17 @@ pub struct BrowserClient {
     /// The media files available from Media Content Servers
     available_media_files: HashMap<NodeId, Vec<u8>>,
     /// The text files obtained from Text Content Servers. The key is a tuple of (server_id, file_id)
-    obtained_text_files: HashMap<(NodeId, u8), Vec<u8>>,
+    obtained_text_files: HashMap<(NodeId, u8), String>,
     /// The media files obtained from Media Content Servers. The key is a tuple of (server_id, file_id)
     obtained_media_files: HashMap<(NodeId, u8), Vec<u8>>,
     /// The servers available to the browser client
     available_servers: HashMap<NodeId, ServerType>,
+    /// Files with references that are waiting for the referenced files to be obtained
+    /// The key is the file_id of the file with references, and the value is a HashSet of the file_ids of the referenced files
+    pending_referenced_files: HashMap<u8, HashSet<u8>>,
+    /// This is the same as above, but the HashSet doesn't get updated every time a file is obtained
+    /// It is needed to know which files to send with the text file to the sim controller
+    references_files: HashMap<u8, HashSet<u8>>,
 }
 
 impl BrowserClient {
@@ -75,6 +81,8 @@ impl BrowserClient {
             obtained_text_files: HashMap::new(),
             obtained_media_files: HashMap::new(),
             available_servers: HashMap::new(),
+            pending_referenced_files: HashMap::new(),
+            references_files: HashMap::new(),
         }
     }
 
@@ -156,7 +164,7 @@ impl BrowserClient {
             // If the response is a text file, add it to the obtained text files
             BrowserResponse::TextFile(file_id, text) => {
                 self.obtained_text_files
-                    .insert((server_id, file_id), text.as_bytes().to_vec());
+                    .insert((server_id, file_id), text.clone());
 
                 println!(
                     "Client {} received text file from {}: {}",
@@ -170,7 +178,7 @@ impl BrowserClient {
                     ));
 
                 // Handle media files referenced inside the text file
-                self.send_referenced_files_requests(&text);
+                self.send_referenced_files_requests(&text, file_id);
             }
             // If the response is a media file, add it to the obtained media files
             BrowserResponse::MediaFile(file_id, media) => {
@@ -180,6 +188,54 @@ impl BrowserClient {
                     "Client {} received media file from server {}: {:?}",
                     self.client_id, server_id, media
                 );
+
+                // Browse the pending referenced files and check if the obtained media file is referenced
+                let mut completed_text_files = vec![];
+                for (file_id, references) in self.pending_referenced_files.iter_mut() {
+                    if references.contains(&file_id) {
+                        // Remove the reference from the pending_referenced_files map
+                        references.remove(&file_id);
+                        // If there are no more references, add the file_id to the completed_text_files
+                        if references.is_empty() {
+                            completed_text_files.push(*file_id);
+                        }
+                    }
+                }
+                // Remove all the completed text files from the pending_referenced_files map
+                // Then, send the completed file to the simulation controller
+                for file_id in completed_text_files {
+                    self.pending_referenced_files.remove(&file_id);
+                    let attached_media_files = self
+                        .references_files
+                        .remove(&file_id)
+                        .unwrap()
+                        .iter()
+                        .map(|file_id| {
+                            (
+                                *file_id,
+                                self.obtained_media_files
+                                    .get(&(server_id, *file_id))
+                                    .unwrap()
+                                    .clone(),
+                            )
+                        })
+                        .collect::<HashMap<u8, Vec<u8>>>();
+                    let text = self
+                        .obtained_text_files
+                        .iter()
+                        .find(|k| k.0 .1 == file_id)
+                        .unwrap()
+                        .1;
+                    let _res =
+                        self.sim_controller_sender
+                            .send(SimControllerResponseWrapper::Message(
+                                SimControllerMessage::TextWithReferences(
+                                    file_id,
+                                    text.clone(),
+                                    attached_media_files,
+                                ),
+                            ));
+                }
 
                 // Send the media file to the sim controller
                 let _res = self
@@ -191,7 +247,7 @@ impl BrowserClient {
         };
     }
 
-    fn send_referenced_files_requests(&mut self, text: &str) {
+    fn send_referenced_files_requests(&mut self, text: &str, file_id: u8) {
         // First, find a server of type media in the available servers
         let available_servers = self.get_available_servers().clone();
         let server_id = available_servers
@@ -230,6 +286,11 @@ impl BrowserClient {
 
         let references = first_line.split('=').collect::<Vec<&str>>()[1];
         let references = references.split(',').collect::<Vec<&str>>();
+
+        // Add the file_id to the pending_referenced_files map
+        self.pending_referenced_files
+            .insert(file_id, HashSet::new());
+
         // Request all the media files referenced in the text file
         for reference in references {
             let reference = reference.parse::<u8>();
@@ -252,6 +313,18 @@ impl BrowserClient {
                 continue;
             }
 
+            // Add the references to the pending_referenced_files map
+            self.pending_referenced_files
+                .get_mut(&file_id)
+                .unwrap()
+                .insert(reference);
+
+            // Add the references to the references_files map
+            self.references_files
+                .entry(reference)
+                .or_insert(HashSet::new())
+                .insert(file_id);
+
             // Request the media file
             self.request_media_file(reference, *server_id);
         }
@@ -265,7 +338,7 @@ impl BrowserClient {
         &self.available_media_files
     }
 
-    pub fn get_obtained_text_files(&self) -> &HashMap<(NodeId, u8), Vec<u8>> {
+    pub fn get_obtained_text_files(&self) -> &HashMap<(NodeId, u8), String> {
         &self.obtained_text_files
     }
 

@@ -70,7 +70,7 @@ pub mod request_file_list {
                 .get_obtained_text_files()
                 .get(&(21, 222))
                 .unwrap(),
-            &example_text_file.as_bytes().to_vec()
+            &example_text_file
         );
 
         // Sim Controller Packet Sent Event
