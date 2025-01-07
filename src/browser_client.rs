@@ -166,8 +166,11 @@ impl BrowserClient {
                 let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::TextFileResponse(file_id, text),
+                        SimControllerMessage::TextFileResponse(file_id, text.clone()),
                     ));
+
+                // Handle media files referenced inside the text file
+                self.send_referenced_files_requests(&text);
             }
             // If the response is a media file, add it to the obtained media files
             BrowserResponse::MediaFile(file_id, media) => {
@@ -186,6 +189,56 @@ impl BrowserClient {
                     ));
             }
         };
+    }
+
+    fn send_referenced_files_requests(&mut self, text: &str) {
+        // First, find a server of type media in the available servers
+        let available_servers = self.get_available_servers().clone();
+        let server_id = available_servers
+            .iter()
+            .find(|s| matches!(s.1, ServerType::Media));
+
+        if server_id.is_none() {
+            println!(
+                "Client {}: No media server found in available servers",
+                self.client_id
+            );
+            return;
+        }
+
+        let server_id = server_id.unwrap().0;
+
+        // Then, look at the media files referenced inside the text file
+        let first_line = text.lines().next();
+        if first_line.is_none() {
+            println!("Client {}: Text file is empty", self.client_id);
+            return;
+        }
+
+        let first_line = first_line.unwrap();
+        let has_reference = first_line.starts_with("ref=");
+
+        if !has_reference {
+            println!(
+                "Client {}: Text file does not have a reference",
+                self.client_id
+            );
+            return;
+        }
+
+        let references = first_line.split('=').collect::<Vec<&str>>()[1];
+        let references = references.split(',').collect::<Vec<&str>>();
+
+        for reference in references {
+            let reference = reference.parse::<u8>();
+            if reference.is_err() {
+                println!("Client {}: Invalid reference in text file", self.client_id);
+                continue;
+            }
+
+            let reference = reference.unwrap();
+            self.request_media_file(reference, *server_id);
+        }
     }
 
     pub fn get_available_text_files(&self) -> &HashMap<NodeId, Vec<u8>> {
