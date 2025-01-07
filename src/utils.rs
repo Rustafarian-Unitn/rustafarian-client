@@ -31,23 +31,23 @@ impl Utils {
     pub fn log(&self, log_message: &str, log_level: LogLevel) {
         match log_level {
             LogLevel::INFO => {
-                print!(
-                    "LEVEL: INFO >>> [{} {}] - {}",
-                    self.node_name, self.id, log_message
+                println!(
+                    "{} {} LEVEL: INFO >>> [{} {}] - {}",
+                    self.node_name, self.id, self.node_name, self.id, log_message
                 );
             }
             LogLevel::DEBUG => {
                 if self.debug {
-                    print!(
-                        "LEVEL: DEBUG >>> [{} {}] - {}",
-                        self.node_name, self.id, log_message
+                    println!(
+                        "{} {} LEVEL: DEBUG >>> [{} {}] - {}",
+                        self.node_name, self.id, self.node_name, self.id, log_message
                     );
                 }
             }
             LogLevel::ERROR => {
-                eprint!(
-                    "LEVEL: ERROR >>> [{} {}] - {}",
-                    self.node_name, self.id, log_message
+                eprintln!(
+                    "{} {} LEVEL: ERROR >>> [{} {}] - {}",
+                    self.node_name, self.id, self.node_name, self.id, log_message
                 );
             }
         }

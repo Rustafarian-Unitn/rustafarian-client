@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::client::Client;
-use crate::utils::Utils;
+use crate::utils::{LogLevel, Utils};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
 use rustafarian_shared::messages::browser_messages::{
     BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
@@ -92,9 +92,9 @@ impl BrowserClient {
 
     /// Requests a text file from a server
     pub fn request_text_file(&mut self, file_id: u8, server_id: NodeId) {
-        println!(
-            "Client {} requesting text file {} from server {}",
-            self.client_id, file_id, server_id
+        self.utils.log(
+            &format!("Requesting text file {} from server {}", file_id, server_id),
+            LogLevel::DEBUG,
         );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::TextFileRequest(file_id));
         let request_json = request.stringify();
@@ -103,9 +103,12 @@ impl BrowserClient {
 
     /// Requests a media file from a server
     pub fn request_media_file(&mut self, file_id: u8, server_id: NodeId) {
-        println!(
-            "Client {} requesting media file {} from server {}",
-            self.client_id, file_id, server_id
+        self.utils.log(
+            &format!(
+                "Requesting media file {} from server {}",
+                file_id, server_id
+            ),
+            LogLevel::DEBUG,
         );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::MediaFileRequest(file_id));
         let request_json = request.stringify();
@@ -114,9 +117,9 @@ impl BrowserClient {
 
     /// Requests a list of files from a server
     pub fn request_file_list(&mut self, server_id: NodeId) {
-        println!(
-            "Client {} requesting file list from server {}",
-            self.client_id, server_id
+        self.utils.log(
+            &format!("Requesting file list from server {}", server_id),
+            LogLevel::DEBUG,
         );
         let request = BrowserRequestWrapper::Chat(BrowserRequest::FileList);
         let request_json = request.stringify();
@@ -137,42 +140,36 @@ impl BrowserClient {
                         }
                     }
                     None => {
-                        eprintln!("Server type not found for server_id: {}", server_id);
+                        self.utils.log(
+                            &format!("Server type not found for server_id: {}", server_id),
+                            LogLevel::ERROR,
+                        );
                     }
                 }
-                println!(
-                    "Client {} received file list from server {}: {:?}",
-                    self.client_id, server_id, files
+                self.utils.log(
+                    &format!("Received file list from server {}: {:?}", server_id, files),
+                    LogLevel::DEBUG,
                 );
 
                 // Send the list of files to the sim controller
-                match self
+                let _res = self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
                         SimControllerMessage::FileListResponse(server_id, files),
-                    )) {
-                    Ok(_) => {
-                        println!(
-                            "Client {}: File list response sent to sim controller",
-                            self.client_id
-                        );
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "Client {}: Error sending file list response to sim controller: {}",
-                            self.client_id, e
-                        );
-                    }
-                };
+                    ));
             }
             // If the response is a text file, add it to the obtained text files
             BrowserResponse::TextFile(file_id, text) => {
                 self.obtained_text_files
                     .insert((server_id, file_id), text.clone());
 
-                println!(
-                    "Client {} received text file from {}: {}",
-                    self.client_id, server_id, text
+                self.utils.log(
+                    &format!(
+                        "Received text file from {}: {}...",
+                        server_id,
+                        &text.chars().take(10).collect::<String>()
+                    ),
+                    LogLevel::DEBUG,
                 );
 
                 // Handle media files referenced inside the text file
@@ -182,9 +179,9 @@ impl BrowserClient {
             BrowserResponse::MediaFile(file_id, media) => {
                 self.obtained_media_files
                     .insert((server_id, file_id), media.clone());
-                println!(
-                    "Client {} received media file from server {}",
-                    self.client_id, server_id
+                self.utils.log(
+                    &format!("Received media file from {}", server_id),
+                    LogLevel::DEBUG,
                 );
 
                 // Check if the media file is referenced in a text file
@@ -213,9 +210,12 @@ impl BrowserClient {
         let mut completed_text_files = vec![];
         for (file_id, references) in self.pending_referenced_files.iter_mut() {
             if references.contains(file_id) {
-                println!(
-                    "Client {}: Media file {} is a reference",
-                    self.client_id, file_id
+                self.utils.log(
+                    &format!(
+                        "Media file {} is a reference in text file {}",
+                        file_id, file_id
+                    ),
+                    LogLevel::DEBUG,
                 );
                 is_reference = true;
                 // Remove the reference from the pending_referenced_files map
@@ -226,9 +226,9 @@ impl BrowserClient {
                 }
             }
         }
-        println!(
-            "Client {}: Completed text files: {:?}",
-            self.client_id, completed_text_files
+        self.utils.log(
+            &format!("Completed text files: {:?}", completed_text_files),
+            LogLevel::DEBUG,
         );
         // Remove all the completed text files from the pending_referenced_files map
         // Then, send the completed file to the simulation controller
@@ -255,9 +255,13 @@ impl BrowserClient {
                 .find(|k| k.0 .1 == file_id)
                 .unwrap()
                 .1;
-            println!(
-                "Client {}: Sending text file {} to sim controller, with attached media files: {:?}",
-                self.client_id, file_id, attached_media_files.keys()
+            self.utils.log(
+                &format!(
+                    "Sending text file {} to sim controller, with attached media files: {:?}",
+                    file_id,
+                    attached_media_files.keys()
+                ),
+                LogLevel::DEBUG,
             );
             let _res = self
                 .sim_controller_sender
@@ -277,7 +281,8 @@ impl BrowserClient {
         // First, look at the media files referenced inside the text file
         let first_line = text.lines().next();
         if first_line.is_none() {
-            println!("Client {}: Text file is empty", self.client_id);
+            self.utils
+                .log(&format!("Text file {} is empty", file_id), LogLevel::ERROR);
             return;
         }
 
@@ -286,9 +291,12 @@ impl BrowserClient {
 
         // If the text file does not have a reference, skip it
         if !has_reference {
-            println!(
-                "Client {}: Text file does not have a reference",
-                self.client_id
+            self.utils.log(
+                &format!(
+                    "Text file {} does not have a reference, sending to controller",
+                    file_id
+                ),
+                LogLevel::DEBUG,
             );
             // Send the text file to the sim controller
             let _res = self
@@ -307,9 +315,9 @@ impl BrowserClient {
 
         // If no media server is found, skip the text file
         if server_id.is_none() {
-            println!(
-                "Client {}: No media server found in available servers",
-                self.client_id
+            self.utils.log(
+                &format!("No media server found in available servers, cannot send media file references for text file {}", file_id),
+                LogLevel::ERROR,
             );
             return;
         }
@@ -327,15 +335,21 @@ impl BrowserClient {
         for reference in references {
             let reference = reference.parse::<u8>();
             if reference.is_err() {
-                println!("Client {}: Invalid reference in text file", self.client_id);
+                self.utils.log(
+                    &format!("Invalid reference in text file {}", file_id),
+                    LogLevel::ERROR,
+                );
                 continue;
             }
             let reference = reference.unwrap();
             // If the media file is already obtained, skip it
             if self.obtained_media_files.keys().any(|k| k.1 == reference) {
-                println!(
-                    "Client {}: Media file {} already obtained",
-                    self.client_id, reference
+                self.utils.log(
+                    &format!(
+                        "Media file {} already obtained, not sending request",
+                        reference
+                    ),
+                    LogLevel::DEBUG,
                 );
                 continue;
             }
@@ -410,9 +424,12 @@ impl Client for BrowserClient {
                 let ServerTypeResponse::ServerType(server_response) = server_response;
                 self.topology()
                     .set_node_type(server_id, format!("{:?}", server_response));
-                println!(
-                    "Client {} received server type: {:?} from {:?}",
-                    self.client_id, server_response, server_id
+                self.utils.log(
+                    &format!(
+                        "Received server type: {:?} from {:?}",
+                        server_response, server_id
+                    ),
+                    LogLevel::DEBUG,
                 );
                 // If it's not a chat server, add it to the available servers (as a key of available_files)
                 match server_response {
@@ -425,9 +442,12 @@ impl Client for BrowserClient {
                         self.available_media_files.insert(server_id, vec![]);
                     }
                     _ => {
-                        println!(
-                            "Client {}: Server type 'Chat' not added to available servers",
-                            self.client_id
+                        self.utils.log(
+                            &format!(
+                                "Server type 'Chat' not added to available servers: {:?}",
+                                server_response
+                            ),
+                            LogLevel::ERROR,
                         );
                     }
                 }
@@ -465,34 +485,44 @@ impl Client for BrowserClient {
         match command {
             // If the command is a request for the file list, send the request
             SimControllerCommand::RequestFileList(server_id) => {
-                println!("COMMAND: Requesting file list from server {}", server_id);
+                self.utils.log(
+                    &format!("COMMAND: Requesting file list from server {}", server_id),
+                    LogLevel::DEBUG,
+                );
                 self.request_file_list(server_id);
             }
             // If the command is a request for a text file, send the request
             SimControllerCommand::RequestTextFile(file_id, server_id) => {
-                println!(
-                    "COMMAND: Requesting text file {} from server {}",
-                    file_id, server_id
+                self.utils.log(
+                    &format!(
+                        "COMMAND: Requesting text file {} from server {}",
+                        file_id, server_id
+                    ),
+                    LogLevel::DEBUG,
                 );
                 self.request_text_file(file_id, server_id);
             }
             // If the command is a request for a media file, send the request
             SimControllerCommand::RequestMediaFile(file_id, server_id) => {
-                println!(
-                    "COMMAND: Requesting media file {} from server {}",
-                    file_id, server_id
+                self.utils.log(
+                    &format!(
+                        "COMMAND: Requesting media file {} from server {}",
+                        file_id, server_id
+                    ),
+                    LogLevel::DEBUG,
                 );
                 self.request_media_file(file_id, server_id);
             }
             // If the command is a flood request, send the request
             SimControllerCommand::FloodRequest => {
-                println!("COMMAND: Sending flood request");
+                self.utils
+                    .log("COMMAND: Sending flood request", LogLevel::DEBUG);
                 self.send_flood_request();
             }
             // If the command is a topology request, send the topology
             SimControllerCommand::Topology => {
                 let topology = self.topology.clone();
-                println!("COMMAND: Sending topology {:?}", topology);
+                self.utils.log("COMMAND: Sending topology", LogLevel::DEBUG);
                 let response = SimControllerMessage::TopologyResponse(topology);
                 self.sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(response))
@@ -500,22 +530,31 @@ impl Client for BrowserClient {
             }
             // If the command is to add a neighbor, add the neighbor to the map and the topology
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
-                println!("COMMAND: Adding sender {}", sender_id);
+                self.utils.log(
+                    &format!("COMMAND: Adding sender {}", sender_id),
+                    LogLevel::DEBUG,
+                );
                 self.senders.insert(sender_id, sender_channel);
                 self.topology.add_node(sender_id);
                 self.topology.add_edge(self.client_id, sender_id);
             }
             // If the command is to remove a neighbor, remove the neighbor from the map and the topology
             SimControllerCommand::RemoveSender(sender_id) => {
-                println!("COMMAND: Removing sender {}", sender_id);
+                self.utils.log(
+                    &format!("COMMAND: Removing sender {}", sender_id),
+                    LogLevel::DEBUG,
+                );
                 self.senders.remove(&sender_id);
                 self.topology.remove_node(sender_id);
             }
             // If the command wants the servers known by the client, send the known servers
             SimControllerCommand::KnownServers => {
-                println!(
-                    "COMMAND: Sending known servers ({:?})",
-                    self.available_servers
+                self.utils.log(
+                    &format!(
+                        "COMMAND: Sending known servers ({:?})",
+                        self.available_servers
+                    ),
+                    LogLevel::DEBUG,
                 );
                 let known_servers = self.available_servers.clone();
                 let response = SimControllerMessage::KnownServers(known_servers);
@@ -524,14 +563,17 @@ impl Client for BrowserClient {
                     .unwrap();
             }
             SimControllerCommand::RequestServerType(server_id) => {
-                println!("COMMAND: Requesting server type from server {}", server_id);
+                self.utils.log(
+                    &format!("COMMAND: Requesting server type from server {}", server_id),
+                    LogLevel::DEBUG,
+                );
                 self.send_server_type_request(server_id);
             }
             // Commands related to the Chat Client
             _ => {
-                eprintln!(
-                    "Requesting Chat Client commands on Browser Client?! ({:?})",
-                    command
+                self.utils.log(
+                    &format!("COMMAND: Unrecognized command: {:?}", command),
+                    LogLevel::ERROR,
                 );
             }
         }
@@ -542,9 +584,9 @@ impl Client for BrowserClient {
     }
 
     fn send_server_type_request(&mut self, server_id: NodeId) {
-        println!(
-            "Client {} sending server type request to server {}",
-            self.client_id, server_id
+        self.utils.log(
+            &format!("Sending server type request to server {}", server_id),
+            LogLevel::DEBUG,
         );
         let request = ServerTypeRequest::ServerType;
         let request_wrapped = BrowserRequestWrapper::ServerType(request);
