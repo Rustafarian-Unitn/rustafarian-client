@@ -134,11 +134,24 @@ impl BrowserClient {
                 );
 
                 // Send the list of files to the sim controller
-                let _res = self
+                match self
                     .sim_controller_sender
                     .send(SimControllerResponseWrapper::Message(
                         SimControllerMessage::FileListResponse(server_id, files),
-                    ));
+                    )) {
+                    Ok(_) => {
+                        println!(
+                            "Client {}: File list response sent to sim controller",
+                            self.client_id
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Client {}: Error sending file list response to sim controller: {}",
+                            self.client_id, e
+                        );
+                    }
+                };
             }
             // If the response is a text file, add it to the obtained text files
             BrowserResponse::TextFile(file_id, text) => {
