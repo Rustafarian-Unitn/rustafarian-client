@@ -272,9 +272,10 @@ pub mod controller_test {
 
         assert!(!chat_client.senders().contains_key(&2));
 
-        assert!(!chat_client.topology().nodes().contains(&2));
+        assert!(chat_client.topology().nodes().contains(&2));
         assert!(chat_client.topology().edges().contains_key(&1));
-        assert!(!chat_client.topology().edges().contains_key(&2));
+        assert!(chat_client.topology().edges().contains_key(&2));
         assert!(!chat_client.topology().edges().get(&1).unwrap().contains(&2));
+        assert!(!chat_client.topology().edges().get(&2).unwrap().contains(&1));
     }
 }
