@@ -315,7 +315,7 @@ impl Client for ChatClient {
             SimControllerCommand::RemoveSender(sender_id) => {
                 println!("COMMAND: Removing sender {}", sender_id);
                 self.senders.remove(&sender_id);
-                self.topology.remove_node(sender_id);
+                self.topology.remove_edges(self.client_id, sender_id);
             }
             SimControllerCommand::RequestServerType(server_id) => {
                 println!("COMMAND: Requesting server type from server {}", server_id);
