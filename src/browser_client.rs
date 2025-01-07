@@ -183,55 +183,8 @@ impl BrowserClient {
                     self.client_id, server_id, media
                 );
 
-                // Browse the pending referenced files and check if the obtained media file is referenced
-                let mut is_reference = false;
-                let mut completed_text_files = vec![];
-                for (file_id, references) in self.pending_referenced_files.iter_mut() {
-                    if references.contains(file_id) {
-                        is_reference = true;
-                        // Remove the reference from the pending_referenced_files map
-                        references.remove(file_id);
-                        // If there are no more references, add the file_id to the completed_text_files
-                        if references.is_empty() {
-                            completed_text_files.push(*file_id);
-                        }
-                    }
-                }
-                // Remove all the completed text files from the pending_referenced_files map
-                // Then, send the completed file to the simulation controller
-                for file_id in completed_text_files {
-                    self.pending_referenced_files.remove(&file_id);
-                    let attached_media_files = self
-                        .references_files
-                        .remove(&file_id)
-                        .unwrap()
-                        .iter()
-                        .map(|file_id| {
-                            (
-                                *file_id,
-                                self.obtained_media_files
-                                    .get(&(server_id, *file_id))
-                                    .unwrap()
-                                    .clone(),
-                            )
-                        })
-                        .collect::<HashMap<u8, Vec<u8>>>();
-                    let text = self
-                        .obtained_text_files
-                        .iter()
-                        .find(|k| k.0 .1 == file_id)
-                        .unwrap()
-                        .1;
-                    let _res =
-                        self.sim_controller_sender
-                            .send(SimControllerResponseWrapper::Message(
-                                SimControllerMessage::TextWithReferences(
-                                    file_id,
-                                    text.clone(),
-                                    attached_media_files,
-                                ),
-                            ));
-                }
+                // Check if the media file is referenced in a text file
+                let is_reference = self.check_referenced_media_received(server_id);
 
                 // If it's a reference, don't send it to the sim controller
                 if is_reference {
@@ -248,6 +201,71 @@ impl BrowserClient {
         };
     }
 
+    /// When a media file is obtained, check if it is referenced in a text file
+    /// In that case, if all the references are obtained, send the text file to the sim controller with the attached media files
+    fn check_referenced_media_received(&mut self, server_id: NodeId) -> bool {
+        // Browse the pending referenced files and check if the obtained media file is referenced
+        let mut is_reference = false;
+        let mut completed_text_files = vec![];
+        for (file_id, references) in self.pending_referenced_files.iter_mut() {
+            if references.contains(file_id) {
+                println!("Client {}: Media file {} is a reference", self.client_id, file_id);
+                is_reference = true;
+                // Remove the reference from the pending_referenced_files map
+                references.remove(file_id);
+                // If there are no more references, add the file_id to the completed_text_files
+                if references.is_empty() {
+                    completed_text_files.push(*file_id);
+                }
+            }
+        }
+        println!(
+            "Client {}: Completed text files: {:?}",
+            self.client_id, completed_text_files
+        );
+        // Remove all the completed text files from the pending_referenced_files map
+        // Then, send the completed file to the simulation controller
+        for file_id in completed_text_files {
+            self.pending_referenced_files.remove(&file_id);
+            let attached_media_files = self
+                .references_files
+                .remove(&file_id)
+                .unwrap()
+                .iter()
+                .map(|file_id| {
+                    (
+                        *file_id,
+                        self.obtained_media_files
+                            .get(&(server_id, *file_id))
+                            .unwrap()
+                            .clone(),
+                    )
+                })
+                .collect::<HashMap<u8, Vec<u8>>>();
+            let text = self
+                .obtained_text_files
+                .iter()
+                .find(|k| k.0 .1 == file_id)
+                .unwrap()
+                .1;
+            println!(
+                "Client {}: Sending text file {} to sim controller, with attached media files: {:?}",
+                self.client_id, file_id, attached_media_files.keys()
+            );
+            let _res = self
+                .sim_controller_sender
+                .send(SimControllerResponseWrapper::Message(
+                    SimControllerMessage::TextWithReferences(
+                        file_id,
+                        text.clone(),
+                        attached_media_files,
+                    ),
+                ));
+        }
+        return is_reference;
+    }
+
+    /// If there is any reference to media files in the text file, request the media files
     fn send_referenced_files_requests(&mut self, text: &str, file_id: u8) {
         // First, look at the media files referenced inside the text file
         let first_line = text.lines().next();
