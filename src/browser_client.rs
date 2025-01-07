@@ -170,12 +170,6 @@ impl BrowserClient {
                     "Client {} received text file from {}: {}",
                     self.client_id, server_id, text
                 );
-                // Send the text file to the sim controller
-                let _res = self
-                    .sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(
-                        SimControllerMessage::TextFileResponse(file_id, text.clone()),
-                    ));
 
                 // Handle media files referenced inside the text file
                 self.send_referenced_files_requests(&text, file_id);
@@ -190,9 +184,11 @@ impl BrowserClient {
                 );
 
                 // Browse the pending referenced files and check if the obtained media file is referenced
+                let mut is_reference = false;
                 let mut completed_text_files = vec![];
                 for (file_id, references) in self.pending_referenced_files.iter_mut() {
                     if references.contains(file_id) {
+                        is_reference = true;
                         // Remove the reference from the pending_referenced_files map
                         references.remove(file_id);
                         // If there are no more references, add the file_id to the completed_text_files
@@ -237,6 +233,11 @@ impl BrowserClient {
                             ));
                 }
 
+                // If it's a reference, don't send it to the sim controller
+                if is_reference {
+                    return;
+                }
+
                 // Send the media file to the sim controller
                 let _res = self
                     .sim_controller_sender
@@ -248,24 +249,7 @@ impl BrowserClient {
     }
 
     fn send_referenced_files_requests(&mut self, text: &str, file_id: u8) {
-        // First, find a server of type media in the available servers
-        let available_servers = self.get_available_servers().clone();
-        let server_id = available_servers
-            .iter()
-            .find(|s| matches!(s.1, ServerType::Media));
-
-        // If no media server is found, skip the text file
-        if server_id.is_none() {
-            println!(
-                "Client {}: No media server found in available servers",
-                self.client_id
-            );
-            return;
-        }
-
-        let server_id = server_id.unwrap().0;
-
-        // Then, look at the media files referenced inside the text file
+        // First, look at the media files referenced inside the text file
         let first_line = text.lines().next();
         if first_line.is_none() {
             println!("Client {}: Text file is empty", self.client_id);
@@ -281,8 +265,31 @@ impl BrowserClient {
                 "Client {}: Text file does not have a reference",
                 self.client_id
             );
+            // Send the text file to the sim controller
+            let _res = self
+                .sim_controller_sender
+                .send(SimControllerResponseWrapper::Message(
+                    SimControllerMessage::TextFileResponse(file_id, text.to_string()),
+                ));
             return;
         }
+
+        // Then, find a server of type media in the available servers
+        let available_servers = self.get_available_servers().clone();
+        let server_id = available_servers
+            .iter()
+            .find(|s| matches!(s.1, ServerType::Media));
+
+        // If no media server is found, skip the text file
+        if server_id.is_none() {
+            println!(
+                "Client {}: No media server found in available servers",
+                self.client_id
+            );
+            return;
+        }
+
+        let server_id = server_id.unwrap().0;
 
         let references = first_line.split('=').collect::<Vec<&str>>()[1];
         let references = references.split(',').collect::<Vec<&str>>();
