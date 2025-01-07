@@ -166,7 +166,6 @@ pub trait Client: Send {
             let message_str = String::from_utf8_lossy(&message);
             self.on_text_response_arrived(source_id, packet.session_id, message_str.to_string());
         }
-        println!("Source_id: {}", source_id);
         // After receiving a fragment, send an ACK to the source
         self.send_ack(fragment_index, source_id);
     }
@@ -217,10 +216,9 @@ pub trait Client: Send {
     /// Behavior: Increase the count of ACKs received for that session ID by 1.
     /// If the count is equal to the number of packets sent with that session ID, remove the session ID from the ACKed packets list
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
-        println!(
-            "Client {}: Received ACK for fragment {}",
-            self.client_id(),
-            ack.fragment_index
+        self.util().log(
+            &format!("Received ACK for fragment {}", ack.fragment_index),
+            LogLevel::DEBUG,
         );
         // Increase the count of acked packets for this session ID
         self.acked_packets()

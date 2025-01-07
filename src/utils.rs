@@ -32,22 +32,22 @@ impl Utils {
         match log_level {
             LogLevel::INFO => {
                 println!(
-                    "{} {} LEVEL: INFO >>> [{} {}] - {}",
-                    self.node_name, self.id, self.node_name, self.id, log_message
+                    "[{} {}] - LEVEL: INFO >>> {}",
+                    self.node_name, self.id, log_message
                 );
             }
             LogLevel::DEBUG => {
                 if self.debug {
                     println!(
-                        "{} {} LEVEL: DEBUG >>> [{} {}] - {}",
-                        self.node_name, self.id, self.node_name, self.id, log_message
+                        "[{} {}] - LEVEL: DEBUG >>> {}",
+                        self.node_name, self.id, log_message
                     );
                 }
             }
             LogLevel::ERROR => {
                 eprintln!(
-                    "{} {} LEVEL: ERROR >>> [{} {}] - {}",
-                    self.node_name, self.id, self.node_name, self.id, log_message
+                    "[{} {}] - LEVEL: ERROR >>> {}",
+                    self.node_name, self.id, log_message
                 );
             }
         }
