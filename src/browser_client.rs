@@ -185,7 +185,7 @@ impl BrowserClient {
                 );
 
                 // Check if the media file is referenced in a text file
-                let is_reference = self.check_referenced_media_received(server_id);
+                let is_reference = self.check_referenced_media_received(server_id, file_id);
 
                 // If it's a reference, don't send it to the sim controller
                 if is_reference {
@@ -204,22 +204,29 @@ impl BrowserClient {
 
     /// When a media file is obtained, check if it is referenced in a text file
     /// In that case, if all the references are obtained, send the text file to the sim controller with the attached media files
-    fn check_referenced_media_received(&mut self, server_id: NodeId) -> bool {
+    fn check_referenced_media_received(&mut self, server_id: NodeId, media_file_id: u8) -> bool {
         // Browse the pending referenced files and check if the obtained media file is referenced
         let mut is_reference = false;
         let mut completed_text_files = vec![];
+        self.utils.log(
+            &format!(
+                "Checking if media file is a reference in text files: {:?}",
+                self.pending_referenced_files
+            ),
+            LogLevel::DEBUG,
+        );
         for (file_id, references) in self.pending_referenced_files.iter_mut() {
-            if references.contains(file_id) {
+            if references.contains(&media_file_id) {
                 self.utils.log(
                     &format!(
                         "Media file {} is a reference in text file {}",
-                        file_id, file_id
+                        media_file_id, file_id
                     ),
                     LogLevel::DEBUG,
                 );
                 is_reference = true;
                 // Remove the reference from the pending_referenced_files map
-                references.remove(file_id);
+                references.remove(&media_file_id);
                 // If there are no more references, add the file_id to the completed_text_files
                 if references.is_empty() {
                     completed_text_files.push(*file_id);
@@ -344,6 +351,7 @@ impl BrowserClient {
             let reference = reference.unwrap();
             // If the media file is already obtained, skip it
             if self.obtained_media_files.keys().any(|k| k.1 == reference) {
+                // TODO: fix this. If the references are only media I already have, I never send the text file to the sim controller
                 self.utils.log(
                     &format!(
                         "Media file {} already obtained, not sending request",
