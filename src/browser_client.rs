@@ -370,9 +370,9 @@ impl BrowserClient {
 
             // Add the references to the references_files map
             self.references_files
-                .entry(reference)
+                .entry(file_id)
                 .or_default()
-                .insert(file_id);
+                .insert(reference);
 
             // Request the media file
             self.request_media_file(reference, *server_id);
