@@ -170,6 +170,13 @@ pub mod request_file_list {
 
         let as_request = SimControllerCommand::AddSender(3, new_neighbor);
 
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        *chat_client.last_flood_timestamp() = now;
+
         chat_client.handle_sim_controller_packets(Ok(as_request));
 
         assert!(chat_client.senders().contains_key(&3));

@@ -170,7 +170,7 @@ pub trait Client: Send {
             self.on_text_response_arrived(source_id, packet.session_id, message_str.to_string());
         }
         // After receiving a fragment, send an ACK to the source
-        self.send_ack(fragment_index, source_id);
+        self.send_ack(fragment_index, source_id, packet.session_id);
     }
 
     /// When a NACK (Negative Acknowledgment) is received
@@ -463,7 +463,7 @@ pub trait Client: Send {
     }
 
     /// Send an ACK (Acknowledgment) to a server after receiving a fragment
-    fn send_ack(&mut self, fragment_index: u64, destination_id: u8) {
+    fn send_ack(&mut self, fragment_index: u64, destination_id: u8, session_id: u64) {
         self.util().log(
             &format!(
                 "Client {}: Sending ACK for fragment {} to server {}",
@@ -473,7 +473,6 @@ pub trait Client: Send {
             ),
             LogLevel::DEBUG,
         );
-        let session_id = rand::random();
         let client_id = self.client_id();
         let packet = Packet {
             pack_type: PacketType::Ack(Ack { fragment_index }),
