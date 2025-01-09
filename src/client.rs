@@ -84,9 +84,12 @@ pub trait Client: Send {
         raw_content: String,
     ) {
         // Deserialize the raw content into the response type, then handle the response
-        match self.compose_message(source_id, session_id, raw_content) {
+        match self.compose_message(source_id, session_id, raw_content.clone()) {
             Ok(message) => self.handle_response(message.content, message.source_id),
-            Err(str) => panic!("{}", str),
+            Err(err) => {
+                self.util().log(&format!("ERROR: couldn't deserialize message into ResponseType. Error: {}. Message from {}, packet id: {}, content: {}", err, source_id, session_id, raw_content), LogLevel::ERROR);
+                panic!("Couldn't deserialize message, check error message!");
+            }
         }
     }
 
@@ -229,11 +232,18 @@ pub trait Client: Send {
         let acked_packet_count = self
             .acked_packets()
             .get(&packet.session_id)
-            .unwrap()
+            .unwrap_or(&Vec::new())
             .iter()
             .filter(|x| **x)
             .count();
         // Get the total number of packets with this session id
+        if !self.sent_packets().contains_key(&packet.session_id) {
+            self.util().log(
+                &format!("The ACK was sent for a packet that wasn't sent by me/was already removed?! Packet: {:?}, ack: {:?}", packet, ack),
+                LogLevel::ERROR
+            );
+            return;
+        }
         let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len();
 
         // If all packets have received the acknowledgment
