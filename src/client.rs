@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
@@ -13,8 +14,6 @@ use wg_2024::{
     network::*,
     packet::{FloodRequest, FloodResponse, Packet, PacketType},
 };
-
-use crate::utils::{LogLevel, Utils};
 
 pub const FRAGMENT_DSIZE: usize = 128;
 pub static mut DEBUG: bool = false;
@@ -59,7 +58,7 @@ pub trait Client: Send {
     /// Whether there is a flood request in progress
     fn last_flood_timestamp(&mut self) -> &mut u128;
     /// Utility functions
-    fn util(&self) -> &Utils;
+    fn logger(&self) -> &Logger;
 
     /// Deserializes the raw content into the response type
     fn compose_message(
@@ -87,7 +86,7 @@ pub trait Client: Send {
         match self.compose_message(source_id, session_id, raw_content.clone()) {
             Ok(message) => self.handle_response(message.content, message.source_id),
             Err(err) => {
-                self.util().log(&format!("ERROR: couldn't deserialize message into ResponseType. Error: {}. Message from {}, packet id: {}, content: {}", err, source_id, session_id, raw_content), LogLevel::ERROR);
+                self.logger().log(&format!("ERROR: couldn't deserialize message into ResponseType. Error: {}. Message from {}, packet id: {}, content: {}", err, source_id, session_id, raw_content), LogLevel::ERROR);
             }
         }
     }
@@ -95,7 +94,7 @@ pub trait Client: Send {
     /// When a FloodResponse is received from a Drone
     /// Behavior: Add the nodes to the topology, and add the edges based on the order of the hops
     fn on_flood_response_received(&mut self, flood_response: FloodResponse) {
-        self.util().log(
+        self.logger().log(
             &format!("Received FloodResponse: {:?}", flood_response),
             LogLevel::DEBUG,
         );
@@ -152,7 +151,7 @@ pub trait Client: Send {
     /// When a fragment is received from a Drone
     /// Behavior: recompose the original message from the fragments. If the message is completed, call on_text_response_arrived
     fn on_fragment_received(&mut self, packet: Packet, fragment: Fragment) {
-        self.util().log(
+        self.logger().log(
             &format!(
                 "Received fragment {} from {}",
                 fragment.fragment_index,
@@ -176,7 +175,7 @@ pub trait Client: Send {
     /// Behavior: send a flood request to update the topology if the problem was in the routing
     /// Then, resend the packet
     fn on_nack_received(&mut self, packet: Packet, nack: Nack) {
-        self.util().log(
+        self.logger().log(
             &format!(
                 "Received NACK ({:?}) for fragment {}",
                 nack.nack_type, nack.fragment_index
@@ -196,7 +195,7 @@ pub trait Client: Send {
         match sent_packets {
             Some(sent_packets) => {
                 if (sent_packets.len() as u64) < nack.fragment_index {
-                    self.util().log(
+                    self.logger().log(
                         &format!(
                             "Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list len: {:?}",
                             nack.fragment_index, sent_packets.len()
@@ -213,7 +212,7 @@ pub trait Client: Send {
                 self.send_packet(lost_packet, destination_id);
             }
             None => {
-                self.util().log(
+                self.logger().log(
                     &format!(
                         "Error: NACK received for a packet that wasn't sent by me?! Packet: {:?}, nack: {:?}",
                         packet, nack
@@ -228,7 +227,7 @@ pub trait Client: Send {
     /// Behavior: Increase the count of ACKs received for that session ID by 1.
     /// If the count is equal to the number of packets sent with that session ID, remove the session ID from the ACKed packets list
     fn on_ack_received(&mut self, packet: Packet, ack: Ack) {
-        self.util().log(
+        self.logger().log(
             &format!("Received ACK for fragment {}", ack.fragment_index),
             LogLevel::DEBUG,
         );
@@ -247,7 +246,7 @@ pub trait Client: Send {
             .count();
         // Get the total number of packets with this session id
         if !self.sent_packets().contains_key(&packet.session_id) {
-            self.util().log(
+            self.logger().log(
                 &format!("The ACK was sent for a packet that wasn't sent by me/was already removed?! Packet: {:?}, ack: {:?}", packet, ack),
                 LogLevel::ERROR
             );
@@ -264,7 +263,7 @@ pub trait Client: Send {
 
     /// On flood request received: add itself to the request, then forward to all neighbors
     fn on_flood_request_received(&mut self, packet: Packet, mut request: FloodRequest) {
-        self.util().log(
+        self.logger().log(
             &format!("Received flood request: {:?}", request),
             LogLevel::DEBUG,
         );
@@ -286,7 +285,7 @@ pub trait Client: Send {
     /// Handle a packet received from a drone based on the type
     fn on_drone_packet_received(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
         if packet.is_err() {
-            self.util().log(
+            self.logger().log(
                 &format!("Error receiving packet: {:?}", packet.err().unwrap()),
                 LogLevel::ERROR,
             );
@@ -354,7 +353,7 @@ pub trait Client: Send {
                 self.topology().add_edge(client_id, sender_id);
             }
         }
-        self.util().log("Client running", LogLevel::INFO);
+        self.logger().log("Client running", LogLevel::INFO);
         *self.running() = true;
         // Send flood request on start, as the topology only contains the neighbors
         self.send_flood_request();
@@ -372,12 +371,12 @@ pub trait Client: Send {
             ticks -= 1;
         }
         *self.running() = false;
-        self.util().log("Client stopped", LogLevel::INFO);
+        self.logger().log("Client stopped", LogLevel::INFO);
     }
 
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet, destination_id: u8) {
-        self.util().log(
+        self.logger().log(
             &format!("Sending packet {:?} to server {}", message, destination_id),
             LogLevel::DEBUG,
         );
@@ -386,7 +385,7 @@ pub trait Client: Send {
         // There is no path to the destination
         if planned_route.is_empty() {
             let topology = self.topology().clone();
-            self.util().log(
+            self.logger().log(
                 &format!(
                     "No path to destination ({}) for packet: {:?}, current topology: {:?}",
                     destination_id, message, topology
@@ -427,7 +426,7 @@ pub trait Client: Send {
 
     /// Send a text message to a server
     fn send_message(&mut self, destination_id: u8, message: String) {
-        self.util().log(
+        self.logger().log(
             &format!(
                 "Client {}: Sending text message to server {}",
                 self.client_id(),
@@ -462,7 +461,7 @@ pub trait Client: Send {
 
     /// Send an ACK (Acknowledgment) to a server after receiving a fragment
     fn send_ack(&mut self, fragment_index: u64, destination_id: u8, session_id: u64) {
-        self.util().log(
+        self.logger().log(
             &format!(
                 "Client {}: Sending ACK for fragment {} to server {}",
                 self.client_id(),
@@ -496,7 +495,7 @@ pub trait Client: Send {
         // Set the last flood timestamp to the current time
         *self.last_flood_timestamp() = now;
 
-        self.util().log("Sending flood request", LogLevel::DEBUG);
+        self.logger().log("Sending flood request", LogLevel::DEBUG);
         let self_id = self.client_id();
         let flood_id = rand::random();
         self.sent_flood_ids().push(flood_id);
