@@ -239,12 +239,20 @@ impl BrowserClient {
         // Remove all the completed text files from the pending_referenced_files map
         // Then, send the completed file to the simulation controller
         for file_id in completed_text_files {
+            let empty_string = String::new();
             let text = self
                 .obtained_text_files
-                .get(&(server_id, file_id))
-                .unwrap()
-                .clone();
-            self.send_text_file_with_references(file_id, text);
+                .iter()
+                .find(|k| k.0 .1 == file_id)
+                .unwrap_or((&(0, 0), &empty_string));
+            if text.0 == &(0, 0) {
+                self.logger.log(
+                    &format!("Text file {} not found", file_id),
+                    LogLevel::ERROR,
+                );
+                continue;
+            }
+            self.send_text_file_with_references(file_id, text.1.clone());
         }
         is_reference
     }
