@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::topology::{compute_route, Topology};
+use rustafarian_shared::topology::{compute_route_dijkstra, Topology};
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
@@ -145,7 +145,7 @@ pub trait Client: Send {
             let client_id = self.client_id();
             let destination_id = packet.0;
             new_packet.routing_header.hops =
-                compute_route(self.topology(), client_id, destination_id);
+                compute_route_dijkstra(self.topology(), client_id, destination_id);
             self.send_packet(new_packet, destination_id);
         }
     }
@@ -436,10 +436,7 @@ pub trait Client: Send {
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),
                 session_id,
-                routing_header: SourceRoutingHeader {
-                    hop_index: 1,
-                    hops: compute_route(self.topology(), client_id, destination_id),
-                },
+                routing_header: self.topology().get_routing_header(client_id, destination_id),
             };
             self.send_packet(packet, destination_id);
         }
@@ -467,10 +464,7 @@ pub trait Client: Send {
         let packet = Packet {
             pack_type: PacketType::Ack(Ack { fragment_index }),
             session_id,
-            routing_header: SourceRoutingHeader {
-                hop_index: 1,
-                hops: compute_route(self.topology(), client_id, destination_id),
-            },
+            routing_header: self.topology().get_routing_header(client_id, destination_id),
         };
         self.send_packet(packet, destination_id);
     }
