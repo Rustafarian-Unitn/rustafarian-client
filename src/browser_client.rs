@@ -43,7 +43,7 @@ pub struct BrowserClient {
     /// The text files obtained from Text Content Servers. The key is a tuple of (server_id, file_id)
     obtained_text_files: HashMap<(NodeId, u8), String>,
     /// The media files obtained from Media Content Servers. The key is a tuple of (server_id, file_id)
-    obtained_media_files: HashMap<(NodeId, u8), Vec<u8>>,
+    obtained_media_files: HashMap<u8, Vec<u8>>,
     /// The servers available to the browser client
     available_servers: HashMap<NodeId, ServerType>,
     /// Files with references that are waiting for the referenced files to be obtained
@@ -177,8 +177,7 @@ impl BrowserClient {
             }
             // If the response is a media file, add it to the obtained media files
             BrowserResponse::MediaFile(file_id, media) => {
-                self.obtained_media_files
-                    .insert((server_id, file_id), media.clone());
+                self.obtained_media_files.insert(file_id, media.clone());
                 self.utils.log(
                     &format!("Received media file from {}", server_id),
                     LogLevel::DEBUG,
@@ -240,45 +239,12 @@ impl BrowserClient {
         // Remove all the completed text files from the pending_referenced_files map
         // Then, send the completed file to the simulation controller
         for file_id in completed_text_files {
-            self.pending_referenced_files.remove(&file_id);
-            let attached_media_files = self
-                .references_files
-                .remove(&file_id)
-                .unwrap()
-                .iter()
-                .map(|file_id| {
-                    (
-                        *file_id,
-                        self.obtained_media_files
-                            .get(&(server_id, *file_id))
-                            .unwrap()
-                            .clone(),
-                    )
-                })
-                .collect::<HashMap<u8, Vec<u8>>>();
             let text = self
                 .obtained_text_files
-                .iter()
-                .find(|k| k.0 .1 == file_id)
+                .get(&(server_id, file_id))
                 .unwrap()
-                .1;
-            self.utils.log(
-                &format!(
-                    "Sending text file {} to sim controller, with attached media files: {:?}",
-                    file_id,
-                    attached_media_files.keys()
-                ),
-                LogLevel::DEBUG,
-            );
-            let _res = self
-                .sim_controller_sender
-                .send(SimControllerResponseWrapper::Message(
-                    SimControllerMessage::TextWithReferences(
-                        file_id,
-                        text.clone(),
-                        attached_media_files,
-                    ),
-                ));
+                .clone();
+            self.send_text_file_with_references(file_id, text);
         }
         is_reference
     }
@@ -338,6 +304,8 @@ impl BrowserClient {
         self.pending_referenced_files
             .insert(file_id, HashSet::new());
 
+        // Whether it needs to wait for at least one reference before sending, or if all references have already been obtained.
+        let mut has_pending_references = false;
         // Request all the media files referenced in the text file
         for reference in references {
             let reference = reference.parse::<u8>();
@@ -349,9 +317,15 @@ impl BrowserClient {
                 continue;
             }
             let reference = reference.unwrap();
+
+            // Add the references to the references_files map
+            self.references_files
+                .entry(file_id)
+                .or_default()
+                .insert(reference);
+
             // If the media file is already obtained, skip it
-            if self.obtained_media_files.keys().any(|k| k.1 == reference) {
-                // TODO: fix this. If the references are only media I already have, I never send the text file to the sim controller
+            if self.obtained_media_files.keys().any(|k| *k == reference) {
                 self.utils.log(
                     &format!(
                         "Media file {} already obtained, not sending request",
@@ -361,6 +335,7 @@ impl BrowserClient {
                 );
                 continue;
             }
+            has_pending_references = true;
 
             // Add the references to the pending_referenced_files map
             self.pending_referenced_files
@@ -368,15 +343,64 @@ impl BrowserClient {
                 .unwrap()
                 .insert(reference);
 
-            // Add the references to the references_files map
-            self.references_files
-                .entry(file_id)
-                .or_default()
-                .insert(reference);
-
             // Request the media file
             self.request_media_file(reference, *server_id);
         }
+
+        // If there are no pending references, send the text file to the sim controller with all the references
+        if !has_pending_references {
+            self.send_text_file_with_references(file_id, text.to_string());
+        }
+    }
+
+    /// Send a text file with all the references to the controller
+    fn send_text_file_with_references(&mut self, file_id: u8, text: String) {
+        self.pending_referenced_files.remove(&file_id);
+        // Get the attached media files from the references, and get the obtained content
+        let attached_media_files = self
+            .references_files
+            .remove(&file_id)
+            .unwrap_or_default()
+            .iter()
+            .map(|file_id| {
+                (
+                    *file_id,
+                    self.obtained_media_files
+                        .get(file_id)
+                        .unwrap_or(&Vec::new())
+                        .clone(),
+                )
+            })
+            .collect::<HashMap<u8, Vec<u8>>>();
+        // If it's empty, something went wrong
+        if attached_media_files.is_empty() {
+            self.util().log(
+                &format!(
+                    "The text file {} does not have any attached media files",
+                    file_id
+                ),
+                LogLevel::ERROR,
+            );
+            return;
+        }
+        self.utils.log(
+            &format!(
+                "Sending text file {} to sim controller, with attached media files: {:?}",
+                file_id,
+                attached_media_files.keys()
+            ),
+            LogLevel::DEBUG,
+        );
+        // Send to the simulation controller
+        let _res = self
+            .sim_controller_sender
+            .send(SimControllerResponseWrapper::Message(
+                SimControllerMessage::TextWithReferences(
+                    file_id,
+                    text.clone(),
+                    attached_media_files,
+                ),
+            ));
     }
 
     pub fn get_available_text_files(&self) -> &HashMap<NodeId, Vec<u8>> {
@@ -391,7 +415,7 @@ impl BrowserClient {
         &self.obtained_text_files
     }
 
-    pub fn get_obtained_media_files(&self) -> &HashMap<(NodeId, u8), Vec<u8>> {
+    pub fn get_obtained_media_files(&self) -> &HashMap<u8, Vec<u8>> {
         &self.obtained_media_files
     }
 
