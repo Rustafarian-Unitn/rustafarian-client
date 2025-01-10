@@ -184,7 +184,7 @@ impl BrowserClient {
                 );
 
                 // Check if the media file is referenced in a text file
-                let is_reference = self.check_referenced_media_received(server_id, file_id);
+                let is_reference = self.check_referenced_media_received(file_id);
 
                 // If it's a reference, don't send it to the sim controller
                 if is_reference {
@@ -203,7 +203,7 @@ impl BrowserClient {
 
     /// When a media file is obtained, check if it is referenced in a text file
     /// In that case, if all the references are obtained, send the text file to the sim controller with the attached media files
-    fn check_referenced_media_received(&mut self, server_id: NodeId, media_file_id: u8) -> bool {
+    fn check_referenced_media_received(&mut self, media_file_id: u8) -> bool {
         // Browse the pending referenced files and check if the obtained media file is referenced
         let mut is_reference = false;
         let mut completed_text_files = vec![];
@@ -246,10 +246,8 @@ impl BrowserClient {
                 .find(|k| k.0 .1 == file_id)
                 .unwrap_or((&(0, 0), &empty_string));
             if text.0 == &(0, 0) {
-                self.logger.log(
-                    &format!("Text file {} not found", file_id),
-                    LogLevel::ERROR,
-                );
+                self.logger
+                    .log(&format!("Text file {} not found", file_id), LogLevel::ERROR);
                 continue;
             }
             self.send_text_file_with_references(file_id, text.1.clone());
@@ -267,7 +265,7 @@ impl BrowserClient {
             return;
         }
 
-        let first_line = first_line.unwrap();
+        let first_line = first_line.unwrap(); // Impossible for a panic to happen, as it was just checked
         let has_reference = first_line.starts_with("ref=");
 
         // If the text file does not have a reference, skip it
@@ -303,7 +301,7 @@ impl BrowserClient {
             return;
         }
 
-        let server_id = server_id.unwrap().0;
+        let server_id = server_id.unwrap().0; // Impossible for a panic to happen, as it was just checked
 
         let references = first_line.split('=').collect::<Vec<&str>>()[1];
         let references = references.split(',').collect::<Vec<&str>>();
@@ -324,7 +322,7 @@ impl BrowserClient {
                 );
                 continue;
             }
-            let reference = reference.unwrap();
+            let reference = reference.unwrap(); // Impossible for a panic to happen, as it was just checked
 
             // Add the references to the references_files map
             self.references_files
@@ -348,7 +346,7 @@ impl BrowserClient {
             // Add the references to the pending_referenced_files map
             self.pending_referenced_files
                 .get_mut(&file_id)
-                .unwrap()
+                .unwrap_or(&mut HashSet::new())
                 .insert(reference);
 
             // Request the media file
@@ -494,9 +492,9 @@ impl Client for BrowserClient {
 
                 // Send the server type response to the sim controller
                 let response = SimControllerMessage::ServerTypeResponse(server_id, server_response);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
         }
     }
@@ -565,9 +563,9 @@ impl Client for BrowserClient {
                 self.logger
                     .log("COMMAND: Sending topology", LogLevel::DEBUG);
                 let response = SimControllerMessage::TopologyResponse(topology);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             // If the command is to add a neighbor, add the neighbor to the map and the topology
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
@@ -601,9 +599,9 @@ impl Client for BrowserClient {
                 );
                 let known_servers = self.available_servers.clone();
                 let response = SimControllerMessage::KnownServers(known_servers);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             SimControllerCommand::RequestServerType(server_id) => {
                 self.logger.log(

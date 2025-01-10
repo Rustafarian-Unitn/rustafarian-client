@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
@@ -110,7 +110,7 @@ pub trait Client: Send {
                     .topology()
                     .edges()
                     .get(&node.0)
-                    .unwrap()
+                    .unwrap_or(&HashSet::new())
                     .contains(&flood_response.path_trace[i - 1].0)
                 {
                     continue;
@@ -204,10 +204,19 @@ pub trait Client: Send {
                     );
                     return;
                 }
-                let lost_packet = sent_packets
-                    .get(nack.fragment_index as usize)
-                    .unwrap()
-                    .clone();
+                let lost_packet = sent_packets.get(nack.fragment_index as usize);
+                // If the packet was not found in the list of sent packets
+                if lost_packet.is_none() {
+                    self.logger().log(
+                        &format!(
+                            "Error: The fragment index for the packet is bigger than the list of sent packets. Packet: {:?}, nack: {:?}",
+                            packet, nack
+                        ),
+                        LogLevel::ERROR,
+                    );
+                    return;
+                }
+                let lost_packet = lost_packet.unwrap().clone(); // Safe unwrap: checked above
                 let destination_id = lost_packet.routing_header.get_reversed().hops[0];
                 self.send_packet(lost_packet, destination_id);
             }
@@ -252,7 +261,7 @@ pub trait Client: Send {
             );
             return;
         }
-        let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len();
+        let sent_packet_count = self.sent_packets().get(&packet.session_id).unwrap().len(); // Safe unwrap: checked above
 
         // If all packets have received the acknowledgment
         if acked_packet_count >= sent_packet_count {
@@ -267,7 +276,18 @@ pub trait Client: Send {
             &format!("Received flood request: {:?}", request),
             LogLevel::DEBUG,
         );
-        let sender_id = request.path_trace.last().unwrap().0;
+        let sender_id = request.path_trace.last();
+        if sender_id.is_none() {
+            self.logger().log(
+                &format!(
+                    "Error: Received flood request without a sender id. Packet: {:?}",
+                    packet
+                ),
+                LogLevel::ERROR,
+            );
+            return;
+        }
+        let sender_id = sender_id.unwrap().0; // Safe unwrap: checked above
         request.increment(self.client_id(), NodeType::Client);
         let response = Packet::new_flood_request(
             SourceRoutingHeader::empty_route(),
@@ -277,7 +297,7 @@ pub trait Client: Send {
         // Send the flood request to all neighbors, aside from the sender
         for (neighbor_id, sender) in self.senders() {
             if neighbor_id != &sender_id {
-                sender.send(response.clone()).unwrap();
+                let _res = sender.send(response.clone());
             }
         }
     }
@@ -286,12 +306,12 @@ pub trait Client: Send {
     fn on_drone_packet_received(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
         if packet.is_err() {
             self.logger().log(
-                &format!("Error receiving packet: {:?}", packet.err().unwrap()),
+                &format!("Error receiving packet: {:?}", packet.err().unwrap()), // Safe unwrap: in if is_err
                 LogLevel::ERROR,
             );
             return;
         }
-        let packet = packet.unwrap();
+        let packet = packet.unwrap(); // Safe unwrap: checked above
 
         let packet_type = packet.pack_type.clone();
         match packet_type {
@@ -412,7 +432,7 @@ pub trait Client: Send {
         let drone_id = message.routing_header.hops[message.routing_header.hop_index];
         match self.senders().get(&drone_id) {
             Some(sender) => {
-                sender.send(message).unwrap();
+                let _res = sender.send(message);
             }
             None => {
                 panic!(
@@ -485,7 +505,7 @@ pub trait Client: Send {
     fn send_flood_request(&mut self) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or(std::time::Duration::from_secs(0))
             .as_millis();
         let timeout = rustafarian_shared::TIMEOUT_BETWEEN_FLOODS_MS as u128;
         // Return if the flood was started less than 500 ms ago
@@ -512,13 +532,13 @@ pub trait Client: Send {
                     hops: Vec::new(),
                 },
             };
-            sender.1.send(packet).unwrap();
+            let _res = sender.1.send(packet);
         }
         // Notify the simulation controller that a flood request has been sent
-        self.sim_controller_sender()
+        let _res = self
+            .sim_controller_sender()
             .send(SimControllerResponseWrapper::Event(
                 SimControllerEvent::FloodRequestSent,
-            ))
-            .unwrap();
+            ));
     }
 }

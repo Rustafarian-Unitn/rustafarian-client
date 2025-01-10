@@ -89,7 +89,7 @@ impl ChatClient {
             LogLevel::DEBUG,
         );
         let request = ChatRequestWrapper::Chat(ChatRequest::Register(self.client_id));
-        let request_json = serde_json::to_string(&request).unwrap();
+        let request_json = serde_json::to_string(&request).unwrap_or("".to_string());
         self.send_message(server_id, request_json);
     }
 
@@ -104,7 +104,7 @@ impl ChatClient {
             to,
             message,
         });
-        let chat_message_json = serde_json::to_string(&chat_message).unwrap();
+        let chat_message_json = serde_json::to_string(&chat_message).unwrap_or("".to_string());
 
         self.send_message(server_id, chat_message_json.clone());
 
@@ -124,7 +124,7 @@ impl ChatClient {
         );
 
         let request = ChatRequestWrapper::Chat(ChatRequest::ClientList);
-        let request_json = serde_json::to_string(&request).unwrap();
+        let request_json = serde_json::to_string(&request).unwrap_or("".to_string());
         self.send_message(server_id, request_json);
     }
 
@@ -141,9 +141,9 @@ impl ChatClient {
                     .insert(server_id, client_list.clone());
                 // Send info to the controller
                 let response = SimControllerMessage::ClientListResponse(server_id, client_list);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             // If the response is a message, print it, and send to the controller
             ChatResponse::MessageFrom { from, message } => {
@@ -234,9 +234,9 @@ impl Client for ChatClient {
 
                 // send the server type response to the sim controller
                 let response = SimControllerMessage::ServerTypeResponse(server_id, server_response);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
         }
     }
@@ -300,9 +300,9 @@ impl Client for ChatClient {
                     .log("COMMAND: Sending topology", LogLevel::DEBUG);
                 let topology = self.topology.clone();
                 let response = SimControllerMessage::TopologyResponse(topology);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             // Get the list of servers the client is registered to
             SimControllerCommand::RegisteredServers => {
@@ -311,9 +311,9 @@ impl Client for ChatClient {
                 let response = SimControllerMessage::RegisteredServersResponse(
                     self.registered_servers.clone(),
                 );
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             // Get the list of known servers
             SimControllerCommand::KnownServers => {
@@ -325,9 +325,9 @@ impl Client for ChatClient {
                     map.insert(*server_id, ServerType::Chat);
                 }
                 let response = SimControllerMessage::KnownServers(map);
-                self.sim_controller_sender
-                    .send(SimControllerResponseWrapper::Message(response))
-                    .unwrap();
+                let _res = self
+                    .sim_controller_sender
+                    .send(SimControllerResponseWrapper::Message(response));
             }
             // Add a neighbor
             SimControllerCommand::AddSender(sender_id, sender_channel) => {
