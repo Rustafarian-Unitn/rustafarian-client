@@ -1,14 +1,12 @@
 #[cfg(test)]
-pub mod request_file_list {
+pub mod request_file_list_tests {
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
             browser_messages::{
                 BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
             },
-            commander_messages::{
-                SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
-            },
+            commander_messages::{SimControllerMessage, SimControllerResponseWrapper},
             general_messages::{DroneSend, ServerType, ServerTypeResponse},
         },
     };
@@ -85,36 +83,9 @@ pub mod request_file_list {
             &vec![1, 2, 3, 4, 5]
         );
 
-        // First, the controller receives the PacketReceived event for the ServerType
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketReceived(packet_id) => {
-                    assert_eq!(packet_id, 0);
-                }
-                _ => panic!("Unexpected event"),
-            },
-            _ => panic!("Unexpected message"),
-        }
-
         // After that, it receives a ServerType message
         let _sim_controller_message = sim_controller_response.1.recv().unwrap();
 
-        // Then, it receives the PacketSent for the ACK for that fragment, let's ignore it
-        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
-
-        // Then, it receives the PacketReceived event for the FileList
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketReceived(packet_id) => {
-                    assert_eq!(packet_id, 0);
-                }
-                _ => panic!("Unexpected event"),
-            },
-            _ => panic!("Unexpected message"),
-        }
         // Finally, it receives the response for the FileList
         let sim_controller_message = sim_controller_response.1.recv().unwrap();
 
@@ -124,21 +95,6 @@ pub mod request_file_list {
                     assert_eq!(files, vec![1, 2, 3, 4, 5]);
                 }
                 _ => panic!("Unexpected message"),
-            },
-            _ => panic!("Unexpected message"),
-        }
-
-        // Then, it receives the PacketSent for the ACK for that fragment
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketSent {
-                    session_id: _,
-                    packet_type,
-                } => {
-                    assert_eq!(packet_type, "Ack(0)");
-                }
-                _ => panic!("Unexpected event"),
             },
             _ => panic!("Unexpected message"),
         }
@@ -188,38 +144,15 @@ pub mod request_file_list {
             &vec![1, 2, 3, 4, 5]
         );
 
-        // First, the controller receives the PacketReceived event for the ServerType
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketReceived(packet_id) => {
-                    assert_eq!(packet_id, 0);
-                }
-                _ => panic!("Unexpected event"),
-            },
-            _ => panic!("Unexpected message"),
-        }
-
         // After that, it receives a ServerType message
         let _sim_controller_message = sim_controller_response.1.recv().unwrap();
 
-        // Then, it receives the PacketSent for the ACK for that fragment, let's ignore it
-        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
+        println!("{:?}", _sim_controller_message);
 
-        // Then, it receives the PacketReceived event for the FileList
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketReceived(packet_id) => {
-                    assert_eq!(packet_id, 0);
-                }
-                _ => panic!("Unexpected event"),
-            },
-            _ => panic!("Unexpected message"),
-        }
         // Finally, it receives the response for the FileList
         let sim_controller_message = sim_controller_response.1.recv().unwrap();
+
+        println!("{:?}", sim_controller_message);
 
         match sim_controller_message {
             SimControllerResponseWrapper::Message(message) => match message {
@@ -227,21 +160,6 @@ pub mod request_file_list {
                     assert_eq!(files, vec![1, 2, 3, 4, 5]);
                 }
                 _ => panic!("Unexpected message"),
-            },
-            _ => panic!("Unexpected message"),
-        }
-
-        // Then, it receives the PacketSent for the ACK for that fragment
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketSent {
-                    session_id: _,
-                    packet_type,
-                } => {
-                    assert_eq!(packet_type, "Ack(0)");
-                }
-                _ => panic!("Unexpected event"),
             },
             _ => panic!("Unexpected message"),
         }

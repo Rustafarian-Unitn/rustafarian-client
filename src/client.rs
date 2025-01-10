@@ -284,12 +284,6 @@ pub trait Client: Send {
             );
         }
         let packet = packet.unwrap();
-        // Notify the simulation controller that a packet has been received
-        let _res = self
-            .sim_controller_sender()
-            .send(SimControllerResponseWrapper::Event(
-                SimControllerEvent::PacketReceived(packet.session_id),
-            ));
 
         let packet_type = packet.pack_type.clone();
         match packet_type {
@@ -408,20 +402,9 @@ pub trait Client: Send {
                 .or_insert(vec![false; fragment.total_n_fragments as usize]);
         }
         let drone_id = message.routing_header.hops[message.routing_header.hop_index];
-        let session_id = message.session_id;
         match self.senders().get(&drone_id) {
             Some(sender) => {
                 sender.send(message).unwrap();
-
-                // Notify the simulation controller that a packet has been sent
-                let _res = self
-                    .sim_controller_sender()
-                    .send(SimControllerResponseWrapper::Event(
-                        SimControllerEvent::PacketSent {
-                            session_id,
-                            packet_type: packet_type.to_string(),
-                        },
-                    ));
             }
             None => {
                 panic!(
@@ -460,6 +443,13 @@ pub trait Client: Send {
             };
             self.send_packet(packet, destination_id);
         }
+
+        // Notify the simulation controller that a packet has been sent
+        let _res = self
+            .sim_controller_sender()
+            .send(SimControllerResponseWrapper::Event(
+                SimControllerEvent::MessageSent { session_id },
+            ));
     }
 
     /// Send an ACK (Acknowledgment) to a server after receiving a fragment

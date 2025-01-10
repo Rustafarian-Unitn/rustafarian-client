@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod request_file_list {
+pub mod command_tests {
     use crossbeam_channel::{unbounded, Sender};
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,

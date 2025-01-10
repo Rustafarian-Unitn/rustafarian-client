@@ -1,14 +1,12 @@
 #[cfg(test)]
-pub mod request_file_list {
+pub mod request_type_tests {
     use rustafarian_shared::{
         assembler::disassembler::Disassembler,
         messages::{
             browser_messages::{
                 BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
             },
-            commander_messages::{
-                SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
-            },
+            commander_messages::{SimControllerMessage, SimControllerResponseWrapper},
             general_messages::DroneSend,
         },
     };
@@ -72,19 +70,6 @@ pub mod request_file_list {
                 .unwrap(),
             &example_text_file
         );
-
-        // Sim Controller Packet Sent Event
-        let sim_controller_message = sim_controller_response.1.recv().unwrap();
-
-        match sim_controller_message {
-            SimControllerResponseWrapper::Event(event) => match event {
-                SimControllerEvent::PacketReceived(packet_id) => {
-                    assert_eq!(packet_id, 0);
-                }
-                _ => panic!("Unexpected event"),
-            },
-            _ => panic!("Unexpected message"),
-        }
 
         // Then tests sim controller message
 

@@ -112,7 +112,7 @@ impl ChatClient {
         let _res = self
             .sim_controller_sender
             .send(SimControllerResponseWrapper::Event(
-                SimControllerEvent::MessageSent(server_id, to, chat_message_json),
+                SimControllerEvent::ChatMessageSent(server_id, to, chat_message_json),
             ));
     }
 

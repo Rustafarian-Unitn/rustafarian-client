@@ -66,7 +66,6 @@ pub mod test_running {
         let _ = controller_channel_messages.1.recv(); // FloodRequestEvent
 
         channel.0.send(fake_packet).unwrap();
-        let _pack_received_event = controller_channel_messages.1.recv().unwrap();
         let sim_received = controller_channel_messages.1.recv().unwrap();
         assert!(matches!(
             sim_received,

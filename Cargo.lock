@@ -172,7 +172,7 @@ dependencies = [
 [[package]]
 name = "rustafarian-shared"
 version = "0.1.1"
-source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared#8136d73c42c71484848289d911fc56d7bd67f603"
+source = "git+https://github.com/Rustafarian-Unitn/rustafarian-shared#959590791dfd221969a80ec13ec8b97b34b910be"
 dependencies = [
  "crossbeam-channel",
  "serde",
@@ -220,9 +220,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.95"
+version = "2.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46f71c0377baf4ef1cc3e3402ded576dccc315800fbc62dfc7fe04b009773b4a"
+checksum = "d5d0adab1ae378d7f53bdebc67a39f1f151407ef230f0ce2883572f5d8985c80"
 dependencies = [
  "proc-macro2",
  "quote",
