@@ -88,7 +88,6 @@ pub trait Client: Send {
             Ok(message) => self.handle_response(message.content, message.source_id),
             Err(err) => {
                 self.util().log(&format!("ERROR: couldn't deserialize message into ResponseType. Error: {}. Message from {}, packet id: {}, content: {}", err, source_id, session_id, raw_content), LogLevel::ERROR);
-                panic!("Couldn't deserialize message, check error message!");
             }
         }
     }
@@ -193,10 +192,18 @@ pub trait Client: Send {
             self.topology().remove_node(error_id);
         }
         // Resend the packet
-        match self.sent_packets().get(&packet.session_id) {
+        let sent_packets = self.sent_packets().get(&packet.session_id).cloned();
+        match sent_packets {
             Some(sent_packets) => {
                 if (sent_packets.len() as u64) < nack.fragment_index {
-                    panic!("Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list: {:?}", nack.fragment_index, sent_packets);
+                    self.util().log(
+                        &format!(
+                            "Error: NACK fragment index is bigger than the fragment list in the list (f_i: {}, lost_packet list len: {:?}",
+                            nack.fragment_index, sent_packets.len()
+                        ),
+                        LogLevel::ERROR,
+                    );
+                    return;
                 }
                 let lost_packet = sent_packets
                     .get(nack.fragment_index as usize)
@@ -206,10 +213,12 @@ pub trait Client: Send {
                 self.send_packet(lost_packet, destination_id);
             }
             None => {
-                panic!(
-                    "Packet with session_id: {} not found?! Packet list: {:?}",
-                    packet.session_id,
-                    self.sent_packets()
+                self.util().log(
+                    &format!(
+                        "Error: NACK received for a packet that wasn't sent by me?! Packet: {:?}, nack: {:?}",
+                        packet, nack
+                    ),
+                    LogLevel::ERROR,
                 );
             }
         }
@@ -277,11 +286,11 @@ pub trait Client: Send {
     /// Handle a packet received from a drone based on the type
     fn on_drone_packet_received(&mut self, packet: Result<Packet, crossbeam_channel::RecvError>) {
         if packet.is_err() {
-            panic!(
-                "Client {}: Error receiving packet: {:?}",
-                self.client_id(),
-                packet.err().unwrap()
+            self.util().log(
+                &format!("Error receiving packet: {:?}", packet.err().unwrap()),
+                LogLevel::ERROR,
             );
+            return;
         }
         let packet = packet.unwrap();
 
@@ -436,7 +445,9 @@ pub trait Client: Send {
             let packet = Packet {
                 pack_type: PacketType::MsgFragment(fragment),
                 session_id,
-                routing_header: self.topology().get_routing_header(client_id, destination_id),
+                routing_header: self
+                    .topology()
+                    .get_routing_header(client_id, destination_id),
             };
             self.send_packet(packet, destination_id);
         }
@@ -464,7 +475,9 @@ pub trait Client: Send {
         let packet = Packet {
             pack_type: PacketType::Ack(Ack { fragment_index }),
             session_id,
-            routing_header: self.topology().get_routing_header(client_id, destination_id),
+            routing_header: self
+                .topology()
+                .get_routing_header(client_id, destination_id),
         };
         self.send_packet(packet, destination_id);
     }

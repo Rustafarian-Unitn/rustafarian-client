@@ -149,7 +149,11 @@ impl ChatClient {
             ChatResponse::MessageFrom { from, message } => {
                 let s = match str::from_utf8(message.as_ref()) {
                     Ok(v) => v,
-                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                    Err(e) => {
+                        self.util()
+                            .log(&format!("Invalid UTF-8 sequence: {}", e), LogLevel::ERROR);
+                        "Invalid UTF-8 sequence"
+                    }
                 };
                 self.utils.log(
                     &format!("Received message from {}: {}", from, s),

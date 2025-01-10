@@ -27,7 +27,6 @@ pub mod error_tests {
     }
 
     #[test]
-    #[should_panic]
     pub fn on_text_response_error() {
         let (
             mut chat_client,
@@ -40,7 +39,6 @@ pub mod error_tests {
     }
 
     #[test]
-    #[should_panic]
     pub fn no_packet_id() {
         let (
             mut chat_client,
@@ -70,7 +68,6 @@ pub mod error_tests {
     }
 
     #[test]
-    #[should_panic]
     pub fn packet_len() {
         let (
             mut chat_client,
@@ -118,7 +115,6 @@ pub mod error_tests {
     }
 
     #[test]
-    #[should_panic]
     fn packet_error() {
         let (
             mut chat_client,
