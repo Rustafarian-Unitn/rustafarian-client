@@ -104,9 +104,9 @@ pub trait Client: Send {
                 self.topology().add_node(node.0);
                 // Set the node type to Drone, so that it can be used as bridge in the route computation
                 if node.1 == NodeType::Drone {
-                    self.topology().set_node_type(node.0, "Drone".to_string());
+                    self.topology().set_node_type(node.0, "drone".to_string());
                 } else if node.1 == NodeType::Client {
-                    self.topology().set_node_type(node.0, "Client".to_string());
+                    self.topology().set_node_type(node.0, "client".to_string());
                 }
             }
             // Add the edge between the current node and the previous node in the path trace
@@ -128,7 +128,7 @@ pub trait Client: Send {
             }
 
             if NodeType::Server == node.1 && self.topology().get_node_type(node.0).is_none() {
-                self.topology().set_node_type(node.0, "Server".to_string());
+                self.topology().set_node_type(node.0, "server".to_string());
                 self.send_server_type_request(node.0);
             }
         }

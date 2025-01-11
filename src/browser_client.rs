@@ -600,7 +600,7 @@ impl Client for BrowserClient {
                 // Check the server types, if any are unknown (Server), request the type
                 let node_types = self.topology.get_node_types().clone();
                 for (server_id, server_type) in node_types {
-                    if server_type == "Server" {
+                    if server_type == "server" {
                         self.send_server_type_request(server_id);
                     }
                 }
