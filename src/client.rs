@@ -102,6 +102,10 @@ pub trait Client: Send {
             // Add the node to the topology if it doesn't exist
             if !self.topology().nodes().contains(&node.0) {
                 self.topology().add_node(node.0);
+                // Set the node type to Drone, so that it can be used as bridge in the route computation
+                if node.1 == NodeType::Drone {
+                    self.topology().set_node_type(node.0, "Drone".to_string());
+                }
             }
             // Add the edge between the current node and the previous node in the path trace
             if i > 0 {
