@@ -485,7 +485,7 @@ impl Client for BrowserClient {
                                 "Server type 'Chat' not added to available servers: {:?}",
                                 server_response
                             ),
-                            LogLevel::ERROR,
+                            LogLevel::DEBUG,
                         );
                     }
                 }

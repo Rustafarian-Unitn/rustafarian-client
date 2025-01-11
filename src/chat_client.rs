@@ -230,6 +230,14 @@ impl Client for ChatClient {
                 // If it's a chat server, add it to the available servers (as a key of available_clients)
                 if let ServerType::Chat = server_response {
                     self.available_clients.insert(server_id, vec![]);
+                } else {
+                    self.logger.log(
+                        &format!(
+                            "Server type '{:?}' not added to available servers: {:?}",
+                            server_response, server_id
+                        ),
+                        LogLevel::DEBUG,
+                    );
                 }
 
                 // send the server type response to the sim controller
