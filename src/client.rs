@@ -227,8 +227,12 @@ pub trait Client: Send {
                     );
                     return;
                 }
-                let lost_packet = lost_packet.unwrap().clone(); // Safe unwrap: checked above
+                let mut lost_packet = lost_packet.unwrap().clone(); // Safe unwrap: checked above
+                let client_id = self.client_id();
                 let destination_id = lost_packet.routing_header.get_reversed().hops[0];
+                lost_packet.routing_header = self
+                    .topology()
+                    .get_routing_header(client_id, destination_id);
                 self.send_packet(lost_packet, destination_id);
             }
             None => {
