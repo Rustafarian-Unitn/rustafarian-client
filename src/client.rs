@@ -105,6 +105,8 @@ pub trait Client: Send {
                 // Set the node type to Drone, so that it can be used as bridge in the route computation
                 if node.1 == NodeType::Drone {
                     self.topology().set_node_type(node.0, "Drone".to_string());
+                } else if node.1 == NodeType::Client {
+                    self.topology().set_node_type(node.0, "Client".to_string());
                 }
             }
             // Add the edge between the current node and the previous node in the path trace
