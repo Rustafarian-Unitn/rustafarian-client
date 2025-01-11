@@ -345,6 +345,7 @@ impl Client for ChatClient {
                 );
                 self.senders.insert(sender_id, sender_channel);
                 self.topology.add_node(sender_id);
+                self.topology.set_node_type(sender_id, "drone".to_string());
                 self.topology.add_edge(self.client_id, sender_id);
                 // Send a flood request to the new neighbor
                 self.send_flood_request();
