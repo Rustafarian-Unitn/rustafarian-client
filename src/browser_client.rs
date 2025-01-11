@@ -597,6 +597,14 @@ impl Client for BrowserClient {
                     ),
                     LogLevel::DEBUG,
                 );
+                // Check the server types, if any are unknown (Server), request the type
+                let node_types = self.topology.get_node_types().clone();
+                for (server_id, server_type) in node_types {
+                    if server_type == "Server" {
+                        self.send_server_type_request(server_id);
+                    }
+                }
+                // Then, send the response
                 let known_servers = self.available_servers.clone();
                 let response = SimControllerMessage::KnownServers(known_servers);
                 let _res = self

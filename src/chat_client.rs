@@ -324,6 +324,14 @@ impl Client for ChatClient {
                 for (server_id, _) in self.available_clients.iter() {
                     map.insert(*server_id, ServerType::Chat);
                 }
+                // Check the server types, if any are unknown (Server), request the type
+                let node_types = self.topology.get_node_types().clone();
+                for (server_id, server_type) in node_types {
+                    if server_type == "Server" {
+                        self.send_server_type_request(server_id);
+                    }
+                }
+                // Then, send the response
                 let response = SimControllerMessage::KnownServers(map);
                 let _res = self
                     .sim_controller_sender
