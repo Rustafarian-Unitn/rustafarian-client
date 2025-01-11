@@ -185,6 +185,11 @@ pub trait Client: Send {
         // If the NACK is not due to a dropped packet (so the topology was wrong/changed), send a flood request
         if !matches!(nack.nack_type, NackType::Dropped) {
             self.send_flood_request();
+        } else {
+            // If it was dropped, get the id of the drone that dropped it, and increase the PDR in the topology
+            let reversed_header = packet.routing_header.get_reversed();
+            let node_id = reversed_header.hops[0];
+            self.topology().update_node_history(&vec![node_id], true);
         }
         // If the NACK is due to an error in routing (the node crashed), remove the node from the topology
         if let NackType::ErrorInRouting(error_id) = nack.nack_type {
@@ -416,6 +421,9 @@ pub trait Client: Send {
             self.packets_to_send().insert(destination_id, message);
             return;
         }
+
+        // Update the PDR in the topology
+        self.topology().update_node_history(&planned_route, false);
 
         // Add the packet to the list of sent packets, in case it needs to be resent (due to nack)
         self.sent_packets()
