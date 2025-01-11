@@ -4,7 +4,7 @@ use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
 };
-use rustafarian_shared::topology::{compute_route_dijkstra, Topology};
+use rustafarian_shared::topology::{Topology};
 
 use crossbeam_channel::{select_biased, Receiver, Sender};
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
@@ -148,8 +148,7 @@ pub trait Client: Send {
             let mut new_packet = packet.1.clone();
             let client_id = self.client_id();
             let destination_id = packet.0;
-            new_packet.routing_header.hops =
-                compute_route_dijkstra(self.topology(), client_id, destination_id);
+            new_packet.routing_header = self.topology().get_routing_header(client_id, destination_id);
             self.send_packet(new_packet, destination_id);
         }
     }
