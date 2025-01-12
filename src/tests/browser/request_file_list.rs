@@ -188,8 +188,6 @@ pub mod request_file_list_tests {
 
         browser_client.on_drone_packet_received(Ok(packet));
 
-        assert!(
-            !browser_client.get_available_text_files().contains_key(&21)
-        );
+        assert!(!browser_client.get_available_text_files().contains_key(&21));
     }
 }

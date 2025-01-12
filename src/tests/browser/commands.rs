@@ -184,7 +184,12 @@ pub mod command_tests {
         assert!(browser_client.topology().nodes().contains(&3));
         assert!(browser_client.topology().edges().contains_key(&1));
         assert!(browser_client.topology().edges().contains_key(&3));
-        assert!(browser_client.topology().edges().get(&1).unwrap().contains(&3));
+        assert!(browser_client
+            .topology()
+            .edges()
+            .get(&1)
+            .unwrap()
+            .contains(&3));
     }
 
     #[test]
@@ -205,8 +210,18 @@ pub mod command_tests {
         assert!(browser_client.topology().nodes().contains(&2));
         assert!(browser_client.topology().edges().contains_key(&1));
         assert!(browser_client.topology().edges().contains_key(&2));
-        assert!(!browser_client.topology().edges().get(&1).unwrap().contains(&2));
-        assert!(!browser_client.topology().edges().get(&2).unwrap().contains(&1));
+        assert!(!browser_client
+            .topology()
+            .edges()
+            .get(&1)
+            .unwrap()
+            .contains(&2));
+        assert!(!browser_client
+            .topology()
+            .edges()
+            .get(&2)
+            .unwrap()
+            .contains(&1));
     }
 
     #[test]
@@ -218,7 +233,9 @@ pub mod command_tests {
             _controller_channel_messages,
         ) = util::build_browser();
 
-        browser_client.topology().set_node_type(21, "server".to_string());
+        browser_client
+            .topology()
+            .set_node_type(21, "server".to_string());
 
         let ks_request = SimControllerCommand::KnownServers;
 
@@ -255,7 +272,9 @@ pub mod command_tests {
             _controller_channel_messages,
         ) = util::build_browser();
 
-        browser_client.topology().set_node_type(21, "server".to_string());
+        browser_client
+            .topology()
+            .set_node_type(21, "server".to_string());
 
         let st_request = SimControllerCommand::RequestServerType(21);
 

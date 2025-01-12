@@ -9,7 +9,9 @@ pub mod controller_test {
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
-    use rustafarian_shared::messages::general_messages::{ServerType, ServerTypeRequest, ServerTypeResponse};
+    use rustafarian_shared::messages::general_messages::{
+        ServerType, ServerTypeRequest, ServerTypeResponse,
+    };
     use wg_2024::packet::{Packet, PacketType};
 
     use crate::client::Client;
@@ -289,14 +291,12 @@ pub mod controller_test {
 
     #[test]
     fn request_server_type() {
-        let (
-            mut chat_client,
-            neighbor,
-            _controller_channel_commands,
-            _controller_channel_messages,
-        ) = util::build_client();
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
-        chat_client.topology().set_node_type(21, "server".to_string());
+        chat_client
+            .topology()
+            .set_node_type(21, "server".to_string());
 
         let st_request = SimControllerCommand::RequestServerType(21);
 
@@ -337,7 +337,7 @@ pub mod controller_test {
 
         // Test that it doesn't panic with a Browser command
         chat_client.handle_sim_controller_packets(Ok(as_request));
-        
+
         assert!(true);
     }
 }

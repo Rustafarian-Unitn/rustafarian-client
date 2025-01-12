@@ -95,11 +95,11 @@ pub mod request_type_tests {
             build_browser();
 
         let server_type_response =
-        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
+            BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
         browser_client.handle_response(server_type_response, 22);
 
         let server_type_response =
-        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
+            BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
         browser_client.handle_response(server_type_response, 21);
 
         browser_client.topology().add_edge(2, 22);
@@ -135,20 +135,23 @@ pub mod request_type_tests {
             build_browser();
 
         let server_type_response =
-        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
+            BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
         browser_client.handle_response(server_type_response, 22);
 
         let server_type_response =
-        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
+            BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
         browser_client.handle_response(server_type_response, 21);
 
         browser_client.topology().add_edge(2, 22);
 
         // Put the media in the obtained_media, so that it doesn't have to request it
-        browser_client.get_obtained_media_files().insert(1, vec![1, 2, 3]);
+        browser_client
+            .get_obtained_media_files()
+            .insert(1, vec![1, 2, 3]);
 
         let text_with_ref = String::from("ref=1\nasd");
-        let response = BrowserResponseWrapper::Chat(BrowserResponse::TextFile(1, text_with_ref.clone()));
+        let response =
+            BrowserResponseWrapper::Chat(BrowserResponse::TextFile(1, text_with_ref.clone()));
 
         browser_client.handle_response(response, 21);
 
@@ -162,16 +165,26 @@ pub mod request_type_tests {
         println!("{:?}", sim_controller_message);
         assert!(matches!(
             sim_controller_message,
-            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(1, _, _))
+            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(
+                1,
+                _,
+                _
+            ))
         ));
-        let text = match sim_controller_message.clone() {
-            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(_, text, _)) => text,
-            _ => panic!("Unexpected message"),
-        };
-        let media = match sim_controller_message {
-            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(_, _, media)) => media,
-            _ => panic!("Unexpected message"),
-        };
+        let text =
+            match sim_controller_message.clone() {
+                SimControllerResponseWrapper::Message(
+                    SimControllerMessage::TextWithReferences(_, text, _),
+                ) => text,
+                _ => panic!("Unexpected message"),
+            };
+        let media =
+            match sim_controller_message {
+                SimControllerResponseWrapper::Message(
+                    SimControllerMessage::TextWithReferences(_, _, media),
+                ) => media,
+                _ => panic!("Unexpected message"),
+            };
         assert_eq!(text, text_with_ref);
         let mut medias = HashMap::new();
         medias.insert(1, vec![1, 2, 3]);

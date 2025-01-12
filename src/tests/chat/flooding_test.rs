@@ -41,7 +41,7 @@ pub mod flooding_test {
                 (1, NodeType::Drone),
                 (2, NodeType::Drone),
                 (21, NodeType::Server),
-                (3, NodeType::Client)
+                (3, NodeType::Client),
             ]
             .to_vec(),
         });
@@ -76,12 +76,8 @@ pub mod flooding_test {
 
     #[test]
     fn test_receive_response2() {
-        let (
-            mut chat_client,
-            neighbor,
-            _controller_channel_commands,
-            _controller_channel_messages,
-        ) = util::build_client();
+        let (mut chat_client, neighbor, _controller_channel_commands, _controller_channel_messages) =
+            util::build_client();
 
         let response = FloodResponse {
             flood_id: 0,
@@ -97,16 +93,17 @@ pub mod flooding_test {
             session_id: 0,
         };
         chat_client.sent_flood_ids().push(0);
-        chat_client.packets_to_send().insert(21, Packet {
-            pack_type: PacketType::Ack(Ack {
-                fragment_index: 0
-            }),
-            routing_header: SourceRoutingHeader {
-                hops: vec![1, 3, 21],
-                hop_index: 1,
+        chat_client.packets_to_send().insert(
+            21,
+            Packet {
+                pack_type: PacketType::Ack(Ack { fragment_index: 0 }),
+                routing_header: SourceRoutingHeader {
+                    hops: vec![1, 3, 21],
+                    hop_index: 1,
+                },
+                session_id: 0,
             },
-            session_id: 0,
-        });
+        );
         chat_client.on_drone_packet_received(Ok(packet));
 
         assert_eq!(
@@ -115,21 +112,23 @@ pub mod flooding_test {
             "Topology should contain nodes 1, 2, and 21"
         );
 
-        assert!(
-            chat_client.topology().edges().get(&1).unwrap().contains(&2),
-        );
+        assert!(chat_client.topology().edges().get(&1).unwrap().contains(&2),);
 
-        assert!(
-            chat_client.topology().edges().get(&2).unwrap().contains(&21),
-        );
+        assert!(chat_client
+            .topology()
+            .edges()
+            .get(&2)
+            .unwrap()
+            .contains(&21),);
 
-        assert!(
-            chat_client.topology().edges().get(&2).unwrap().contains(&1),
-        );
+        assert!(chat_client.topology().edges().get(&2).unwrap().contains(&1),);
 
-        assert!(
-            chat_client.topology().edges().get(&21).unwrap().contains(&2),
-        );
+        assert!(chat_client
+            .topology()
+            .edges()
+            .get(&21)
+            .unwrap()
+            .contains(&2),);
 
         // First, it sends the server type request, ignore
         // let _packet_received = neighbor.1.recv().unwrap();
@@ -137,13 +136,7 @@ pub mod flooding_test {
         // Now it should send the ack with the new route
         let packet_received = neighbor.1.recv().unwrap();
         println!("{:?}", packet_received);
-        assert!(matches!(
-            packet_received.pack_type,
-            PacketType::Ack(_)
-        ));
-        assert_eq!(
-            packet_received.routing_header.hops,
-            vec![1, 2, 21]
-        );
+        assert!(matches!(packet_received.pack_type, PacketType::Ack(_)));
+        assert_eq!(packet_received.routing_header.hops, vec![1, 2, 21]);
     }
 }

@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet};
+use std::thread;
+use std::time::Duration;
 
 use rand::Rng;
 use rustafarian_shared::logger::{LogLevel, Logger};
@@ -387,16 +389,20 @@ pub trait Client: Send {
             let client_id = self.client_id();
             for (sender_id, _channel) in senders {
                 self.topology().add_node(sender_id);
-                self.topology().set_node_type(sender_id, "drone".to_string());
+                self.topology()
+                    .set_node_type(sender_id, "drone".to_string());
                 self.topology().add_edge(client_id, sender_id);
             }
         }
         self.logger().log("Client running", LogLevel::INFO);
         *self.running() = true;
-        let mut is_first_flood = true; // Whether it needs to send the first flood request
         let mut current_tick = 0;
-        let timeout_to_flood = rand::thread_rng().gen_range(0..1000); // How long to wait for the flood to start
-                                                                      // Run the client for a certain number of ticks
+        let timeout_to_flood = rand::thread_rng().gen_range(0..500); // How long to wait for the flood to start
+        while current_tick < timeout_to_flood {
+            current_tick += 1;
+            thread::sleep(Duration::from_millis(1));
+        }
+        // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver
             select_biased! {
@@ -408,16 +414,6 @@ pub trait Client: Send {
                 }
             }
             ticks -= 1;
-            current_tick += 1;
-            self.logger().log(
-                &format!("Current tick: {}, timeout_to_flood: {}", current_tick, timeout_to_flood),
-                LogLevel::DEBUG,
-            );
-            if is_first_flood && current_tick > timeout_to_flood {
-                // Send flood request on start, as the topology only contains the neighbors
-                self.send_flood_request();
-                is_first_flood = false;
-            }
         }
         *self.running() = false;
         self.logger().log("Client stopped", LogLevel::INFO);
