@@ -391,7 +391,11 @@ pub trait Client: Send {
                 self.topology().add_edge(client_id, sender_id);
             }
         }
-        self.logger().log("Client running", LogLevel::INFO);
+        let starting_topology = self.topology().clone();
+        self.logger().log(
+            &format!("Client running, starting topology: {:?}", starting_topology),
+            LogLevel::INFO,
+        );
         *self.running() = true;
         // Send the first flood request.
         self.send_flood_request();
