@@ -305,11 +305,22 @@ pub trait Client: Send {
         }
         let sender_id = sender_id.unwrap().0; // Safe unwrap: checked above
         request.increment(self.client_id(), NodeType::Client);
+
+        // If I only have one neighbor, transform into flood response
+        if self.senders().len() == 1 {
+            let response = request.generate_response(packet.session_id);
+            let sender = self.senders().get(&sender_id).unwrap(); // Safe unwrap: checked above
+            let _res = sender.send(response);
+            return;
+        }
+
+        // Otherwise, propagate
         let response = Packet::new_flood_request(
             SourceRoutingHeader::empty_route(),
             packet.session_id,
             request,
         );
+
         // Send the flood request to all neighbors, aside from the sender
         for (neighbor_id, sender) in self.senders() {
             if neighbor_id != &sender_id {
