@@ -1,8 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::thread;
-use std::time::Duration;
 
-use rand::Rng;
 use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
