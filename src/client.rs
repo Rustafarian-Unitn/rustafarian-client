@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use rand::Rng;
 use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
@@ -57,7 +58,7 @@ pub trait Client: Send {
     fn sent_flood_ids(&mut self) -> &mut Vec<u64>;
     /// Whether there is a flood request in progress
     fn last_flood_timestamp(&mut self) -> &mut u128;
-    /// Utility functions
+    /// The logger used by the client
     fn logger(&self) -> &Logger;
 
     /// Deserializes the raw content into the response type
@@ -391,9 +392,10 @@ pub trait Client: Send {
         }
         self.logger().log("Client running", LogLevel::INFO);
         *self.running() = true;
-        // Send flood request on start, as the topology only contains the neighbors
-        self.send_flood_request();
-        // Run the client for a certain number of ticks
+        let mut is_first_flood = true; // Whether it needs to send the first flood request
+        let initial_ticks = ticks; // The starting ticks
+        let timeout_to_flood = rand::thread_rng().gen_range(0..1000); // How long to wait for the flood to start
+                                                                      // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver
             select_biased! {
@@ -405,6 +407,11 @@ pub trait Client: Send {
                 }
             }
             ticks -= 1;
+            if is_first_flood && initial_ticks - ticks > timeout_to_flood {
+                // Send flood request on start, as the topology only contains the neighbors
+                self.send_flood_request();
+                is_first_flood = false;
+            }
         }
         *self.running() = false;
         self.logger().log("Client stopped", LogLevel::INFO);

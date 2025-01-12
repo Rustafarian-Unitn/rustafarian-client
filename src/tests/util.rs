@@ -32,7 +32,7 @@ pub(crate) fn build_client() -> (
         channel.1,
         controller_channel_commands.1.clone(),
         controller_channel_messages.0.clone(),
-        false,
+        true,
     );
 
     chat_client.topology().add_node(2);

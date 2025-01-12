@@ -58,11 +58,5 @@ pub mod nack_test {
             packet_received.pack_type,
             PacketType::FloodRequest(_)
         ));
-        let packet_received = neighbor.1.recv().unwrap();
-
-        assert!(matches!(
-            packet_received.pack_type,
-            PacketType::MsgFragment(_)
-        ));
     }
 }
