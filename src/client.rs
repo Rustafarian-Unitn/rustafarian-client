@@ -408,7 +408,7 @@ pub trait Client: Send {
                 }
             }
             ticks -= 1;
-            if is_first_flood && initial_ticks - ticks > timeout_to_flood {
+            if is_first_flood && initial_ticks - ticks < timeout_to_flood {
                 // Send flood request on start, as the topology only contains the neighbors
                 self.send_flood_request();
                 is_first_flood = false;
