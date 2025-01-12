@@ -423,15 +423,15 @@ pub trait Client: Send {
             }
         }
         let starting_topology = self.topology().clone();
-        self.logger().log(
-            &format!("Client running, starting topology: {starting_topology:?}"),
-            LogLevel::INFO,
-        );
         *self.running() = true;
         // Send the first flood request.
         let random_timeout = rand::thread_rng().gen_range(0..1000);
         let mut current_ticks = 0;
         let mut is_first_flood = true;
+        self.logger().log(
+            &format!("Client running, starting topology: {starting_topology:?}; sending flood request in {random_timeout}ms"),
+            LogLevel::INFO,
+        );
         // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver
