@@ -5,7 +5,7 @@ pub mod flooding_test {
         packet::{Ack, FloodResponse, NodeType, Packet, PacketType},
     };
 
-    use crate::{client::Client, tests::{chat, util}};
+    use crate::{client::Client, tests::util};
 
     #[test]
     fn test_sending_request() {

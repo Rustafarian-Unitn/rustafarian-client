@@ -130,7 +130,7 @@ pub trait Client: Send {
 
             if NodeType::Server == node.1 && self.topology().get_node_type(node.0).is_none() {
                 self.topology().set_node_type(node.0, "server".to_string());
-                self.send_server_type_request(node.0);
+                // self.send_server_type_request(node.0);
             }
         }
 
