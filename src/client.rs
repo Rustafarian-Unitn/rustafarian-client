@@ -387,6 +387,7 @@ pub trait Client: Send {
             let client_id = self.client_id();
             for (sender_id, _channel) in senders {
                 self.topology().add_node(sender_id);
+                self.topology().set_node_type(sender_id, "drone".to_string());
                 self.topology().add_edge(client_id, sender_id);
             }
         }
