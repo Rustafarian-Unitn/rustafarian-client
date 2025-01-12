@@ -131,7 +131,7 @@ pub mod flooding_test {
             .contains(&2),);
 
         // First, it sends the server type request, ignore
-        // let _packet_received = neighbor.1.recv().unwrap();
+        let _packet_received = neighbor.1.recv().unwrap();
 
         // Now it should send the ack with the new route
         let packet_received = neighbor.1.recv().unwrap();
