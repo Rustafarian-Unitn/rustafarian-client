@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use rand::Rng;
 use rustafarian_shared::logger::{LogLevel, Logger};
 use rustafarian_shared::messages::commander_messages::{
     SimControllerCommand, SimControllerEvent, SimControllerMessage, SimControllerResponseWrapper,
@@ -428,7 +429,9 @@ pub trait Client: Send {
         );
         *self.running() = true;
         // Send the first flood request.
-        self.send_flood_request();
+        let random_timeout = rand::thread_rng().gen_range(0..1000);
+        let mut current_ticks = 0;
+        let mut is_first_flood = true;
         // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver
@@ -439,8 +442,15 @@ pub trait Client: Send {
                 recv(self.receiver()) -> packet => {
                     self.on_drone_packet_received(packet);
                 }
+                default() => {
+                    if is_first_flood && current_ticks >= random_timeout {
+                        self.send_flood_request();
+                        is_first_flood = false;
+                    }
+                }
             }
             ticks -= 1;
+            current_ticks += 1;
         }
         *self.running() = false;
         self.logger().log("Client stopped", LogLevel::INFO);
