@@ -409,6 +409,10 @@ pub trait Client: Send {
             }
             ticks -= 1;
             current_tick += 1;
+            self.logger().log(
+                &format!("Current tick: {}, timeout_to_flood: {}", current_tick, timeout_to_flood),
+                LogLevel::DEBUG,
+            );
             if is_first_flood && current_tick > timeout_to_flood {
                 // Send flood request on start, as the topology only contains the neighbors
                 self.send_flood_request();
