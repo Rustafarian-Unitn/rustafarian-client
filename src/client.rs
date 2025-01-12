@@ -396,12 +396,7 @@ pub trait Client: Send {
         }
         self.logger().log("Client running", LogLevel::INFO);
         *self.running() = true;
-        let mut current_tick = 0;
-        let timeout_to_flood = rand::thread_rng().gen_range(0..500); // How long to wait for the flood to start
-        while current_tick < timeout_to_flood {
-            current_tick += 1;
-            thread::sleep(Duration::from_millis(1));
-        }
+        // Send the first flood request.
         self.send_flood_request();
         // Run the client for a certain number of ticks
         while ticks > 0 {
