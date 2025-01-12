@@ -402,6 +402,7 @@ pub trait Client: Send {
             current_tick += 1;
             thread::sleep(Duration::from_millis(1));
         }
+        self.send_flood_request();
         // Run the client for a certain number of ticks
         while ticks > 0 {
             // Select the first available message from the receiver or the simulation controller receiver
