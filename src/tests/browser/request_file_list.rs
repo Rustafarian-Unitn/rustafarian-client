@@ -164,4 +164,32 @@ pub mod request_file_list_tests {
             _ => panic!("Unexpected message"),
         }
     }
+
+    #[test]
+    fn unknown_file_list() {
+        let (mut browser_client, _neighbor, _sim_controller_commands, _sim_controller_response) =
+            build_browser();
+
+        // Test without sending the server type first, the client shouldn't recognize it
+
+        let file_list_response =
+            BrowserResponseWrapper::Chat(BrowserResponse::FileList(vec![1, 2, 3, 4, 5]));
+
+        let file_list_response_json = file_list_response.stringify();
+
+        let disassembled =
+            Disassembler::new().disassemble_message(file_list_response_json.as_bytes().to_vec(), 0);
+
+        let packet = Packet {
+            routing_header: SourceRoutingHeader::new(vec![21, 2, 1], 1),
+            session_id: 0,
+            pack_type: PacketType::MsgFragment(disassembled.get(0).unwrap().clone()),
+        };
+
+        browser_client.on_drone_packet_received(Ok(packet));
+
+        assert!(
+            !browser_client.get_available_text_files().contains_key(&21)
+        );
+    }
 }

@@ -23,6 +23,7 @@ pub mod error_tests {
         let message = ChatResponseWrapper::Chat(ChatResponse::MessageSent);
         let message_json = serde_json::to_string(&message).unwrap();
         let result = chat_client.compose_message(21, 0, message_json);
+        assert!(result.is_ok());
         assert!(matches!(result, Ok(_)));
     }
 

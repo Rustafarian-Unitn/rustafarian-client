@@ -1,13 +1,15 @@
 #[cfg(test)]
 pub mod request_type_tests {
+    use std::collections::HashMap;
+
     use rustafarian_shared::{
-        assembler::disassembler::Disassembler,
+        assembler::{assembler::Assembler, disassembler::Disassembler},
         messages::{
             browser_messages::{
                 BrowserRequest, BrowserRequestWrapper, BrowserResponse, BrowserResponseWrapper,
             },
             commander_messages::{SimControllerMessage, SimControllerResponseWrapper},
-            general_messages::DroneSend,
+            general_messages::{DroneSend, ServerType, ServerTypeResponse},
         },
     };
     use wg_2024::{
@@ -85,5 +87,94 @@ pub mod request_type_tests {
             },
             _ => panic!("Unexpected message"),
         }
+    }
+
+    #[test]
+    fn text_with_references() {
+        let (mut browser_client, neighbor, _sim_controller_commands, _sim_controller_response) =
+            build_browser();
+
+        let server_type_response =
+        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
+        browser_client.handle_response(server_type_response, 22);
+
+        let server_type_response =
+        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
+        browser_client.handle_response(server_type_response, 21);
+
+        browser_client.topology().add_edge(2, 22);
+
+        let text_with_ref = String::from("ref=1\nasd");
+        let response = BrowserResponseWrapper::Chat(BrowserResponse::TextFile(1, text_with_ref));
+
+        browser_client.handle_response(response, 21);
+
+        // I expect the browser to send a request for the media file referenced in the text file.
+        let media_request_msg = neighbor.1.recv().unwrap();
+        let fragment = match media_request_msg.pack_type {
+            PacketType::MsgFragment(fragment) => fragment,
+            _ => panic!("Unexpected packet type"),
+        };
+
+        assert_eq!(fragment.fragment_index, 0);
+
+        let request = Assembler::new().add_fragment(fragment, 0);
+        assert!(request.is_some());
+        let binding = request.unwrap();
+        let request = std::str::from_utf8(&binding).unwrap();
+        let request = serde_json::from_str::<BrowserRequestWrapper>(request).unwrap();
+        assert!(matches!(
+            request,
+            BrowserRequestWrapper::Chat(BrowserRequest::MediaFileRequest(1))
+        ));
+    }
+
+    #[test]
+    fn text_with_references_cached() {
+        let (mut browser_client, _neighbor, _sim_controller_commands, sim_controller_response) =
+            build_browser();
+
+        let server_type_response =
+        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Media));
+        browser_client.handle_response(server_type_response, 22);
+
+        let server_type_response =
+        BrowserResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
+        browser_client.handle_response(server_type_response, 21);
+
+        browser_client.topology().add_edge(2, 22);
+
+        // Put the media in the obtained_media, so that it doesn't have to request it
+        browser_client.get_obtained_media_files().insert(1, vec![1, 2, 3]);
+
+        let text_with_ref = String::from("ref=1\nasd");
+        let response = BrowserResponseWrapper::Chat(BrowserResponse::TextFile(1, text_with_ref.clone()));
+
+        browser_client.handle_response(response, 21);
+
+        // First, it receives two ServerTypeResponses
+        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
+        let _sim_controller_message = sim_controller_response.1.recv().unwrap();
+
+        // The client should send the text file to the sim controller with the reference
+
+        let sim_controller_message = sim_controller_response.1.recv().unwrap();
+        println!("{:?}", sim_controller_message);
+        assert!(matches!(
+            sim_controller_message,
+            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(1, _, _))
+        ));
+        let text = match sim_controller_message.clone() {
+            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(_, text, _)) => text,
+            _ => panic!("Unexpected message"),
+        };
+        let media = match sim_controller_message {
+            SimControllerResponseWrapper::Message(SimControllerMessage::TextWithReferences(_, _, media)) => media,
+            _ => panic!("Unexpected message"),
+        };
+        assert_eq!(text, text_with_ref);
+        let mut medias = HashMap::new();
+        medias.insert(1, vec![1, 2, 3]);
+        assert_eq!(media, medias);
     }
 }

@@ -2,13 +2,13 @@
 pub mod command_tests {
     use crossbeam_channel::{unbounded, Sender};
     use rustafarian_shared::{
-        assembler::disassembler::Disassembler,
+        assembler::{assembler::Assembler, disassembler::Disassembler},
         messages::{
             browser_messages::{BrowserRequest, BrowserRequestWrapper},
             commander_messages::{
                 SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
             },
-            general_messages::DroneSend,
+            general_messages::{DroneSend, ServerTypeRequest},
         },
     };
     use wg_2024::{
@@ -160,7 +160,7 @@ pub mod command_tests {
     #[test]
     fn add_sender_request() {
         let (
-            mut chat_client,
+            mut browser_client,
             _neighbor,
             _controller_channel_commands,
             _controller_channel_messages,
@@ -175,22 +175,22 @@ pub mod command_tests {
             .unwrap()
             .as_millis();
 
-        *chat_client.last_flood_timestamp() = now;
+        *browser_client.last_flood_timestamp() = now;
 
-        chat_client.handle_sim_controller_packets(Ok(as_request));
+        browser_client.handle_sim_controller_packets(Ok(as_request));
 
-        assert!(chat_client.senders().contains_key(&3));
+        assert!(browser_client.senders().contains_key(&3));
 
-        assert!(chat_client.topology().nodes().contains(&3));
-        assert!(chat_client.topology().edges().contains_key(&1));
-        assert!(chat_client.topology().edges().contains_key(&3));
-        assert!(chat_client.topology().edges().get(&1).unwrap().contains(&3));
+        assert!(browser_client.topology().nodes().contains(&3));
+        assert!(browser_client.topology().edges().contains_key(&1));
+        assert!(browser_client.topology().edges().contains_key(&3));
+        assert!(browser_client.topology().edges().get(&1).unwrap().contains(&3));
     }
 
     #[test]
     fn remove_sender_request() {
         let (
-            mut chat_client,
+            mut browser_client,
             _neighbor,
             _controller_channel_commands,
             _controller_channel_messages,
@@ -198,14 +198,88 @@ pub mod command_tests {
 
         let as_request = SimControllerCommand::RemoveSender(2);
 
-        chat_client.handle_sim_controller_packets(Ok(as_request));
+        browser_client.handle_sim_controller_packets(Ok(as_request));
 
-        assert!(!chat_client.senders().contains_key(&2));
+        assert!(!browser_client.senders().contains_key(&2));
 
-        assert!(chat_client.topology().nodes().contains(&2));
-        assert!(chat_client.topology().edges().contains_key(&1));
-        assert!(chat_client.topology().edges().contains_key(&2));
-        assert!(!chat_client.topology().edges().get(&1).unwrap().contains(&2));
-        assert!(!chat_client.topology().edges().get(&2).unwrap().contains(&1));
+        assert!(browser_client.topology().nodes().contains(&2));
+        assert!(browser_client.topology().edges().contains_key(&1));
+        assert!(browser_client.topology().edges().contains_key(&2));
+        assert!(!browser_client.topology().edges().get(&1).unwrap().contains(&2));
+        assert!(!browser_client.topology().edges().get(&2).unwrap().contains(&1));
+    }
+
+    #[test]
+    fn known_servers_type_req() {
+        let (
+            mut browser_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        browser_client.topology().set_node_type(21, "server".to_string());
+
+        let ks_request = SimControllerCommand::KnownServers;
+
+        browser_client.handle_sim_controller_packets(Ok(ks_request));
+
+        let received_server_type = neighbor.1.recv().unwrap();
+
+        let destination = received_server_type.routing_header.destination();
+        assert!(destination.is_some());
+        assert!(destination.unwrap() == 21);
+
+        let fragment = match received_server_type.pack_type {
+            PacketType::MsgFragment(fragment) => fragment,
+            _ => panic!("Unexpected packet type"),
+        };
+
+        let request = Assembler::new().add_fragment(fragment, 0);
+        assert!(request.is_some());
+        let binding = request.unwrap();
+        let request = serde_json::from_slice::<BrowserRequestWrapper>(&binding).unwrap();
+
+        assert!(matches!(
+            request,
+            BrowserRequestWrapper::ServerType(ServerTypeRequest::ServerType)
+        ));
+    }
+
+    #[test]
+    fn request_server_type() {
+        let (
+            mut browser_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_browser();
+
+        browser_client.topology().set_node_type(21, "server".to_string());
+
+        let st_request = SimControllerCommand::RequestServerType(21);
+
+        browser_client.handle_sim_controller_packets(Ok(st_request));
+
+        let received_server_type = neighbor.1.recv().unwrap();
+
+        let destination = received_server_type.routing_header.destination();
+        assert!(destination.is_some());
+        assert!(destination.unwrap() == 21);
+
+        let fragment = match received_server_type.pack_type {
+            PacketType::MsgFragment(fragment) => fragment,
+            _ => panic!("Unexpected packet type"),
+        };
+
+        let request = Assembler::new().add_fragment(fragment, 0);
+        assert!(request.is_some());
+        let binding = request.unwrap();
+        let request = serde_json::from_slice::<BrowserRequestWrapper>(&binding).unwrap();
+
+        assert!(matches!(
+            request,
+            BrowserRequestWrapper::ServerType(ServerTypeRequest::ServerType)
+        ));
     }
 }

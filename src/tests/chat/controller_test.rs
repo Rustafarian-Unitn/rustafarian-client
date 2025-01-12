@@ -2,13 +2,14 @@
 pub mod controller_test {
     use crossbeam_channel::{unbounded, Sender};
     use rustafarian_shared::assembler::assembler::Assembler;
+    use rustafarian_shared::messages::browser_messages::BrowserRequestWrapper;
     use rustafarian_shared::messages::chat_messages::{
         ChatRequest, ChatRequestWrapper, ChatResponseWrapper,
     };
     use rustafarian_shared::messages::commander_messages::{
         SimControllerCommand, SimControllerMessage, SimControllerResponseWrapper,
     };
-    use rustafarian_shared::messages::general_messages::{ServerType, ServerTypeResponse};
+    use rustafarian_shared::messages::general_messages::{ServerType, ServerTypeRequest, ServerTypeResponse};
     use wg_2024::packet::{Packet, PacketType};
 
     use crate::client::Client;
@@ -284,5 +285,59 @@ pub mod controller_test {
         assert!(chat_client.topology().edges().contains_key(&2));
         assert!(!chat_client.topology().edges().get(&1).unwrap().contains(&2));
         assert!(!chat_client.topology().edges().get(&2).unwrap().contains(&1));
+    }
+
+    #[test]
+    fn request_server_type() {
+        let (
+            mut chat_client,
+            neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
+
+        chat_client.topology().set_node_type(21, "server".to_string());
+
+        let st_request = SimControllerCommand::RequestServerType(21);
+
+        chat_client.handle_sim_controller_packets(Ok(st_request));
+
+        let received_server_type = neighbor.1.recv().unwrap();
+
+        let destination = received_server_type.routing_header.destination();
+        assert!(destination.is_some());
+        assert!(destination.unwrap() == 21);
+
+        let fragment = match received_server_type.pack_type {
+            PacketType::MsgFragment(fragment) => fragment,
+            _ => panic!("Unexpected packet type"),
+        };
+
+        let request = Assembler::new().add_fragment(fragment, 0);
+        assert!(request.is_some());
+        let binding = request.unwrap();
+        let request = serde_json::from_slice::<BrowserRequestWrapper>(&binding).unwrap();
+
+        assert!(matches!(
+            request,
+            BrowserRequestWrapper::ServerType(ServerTypeRequest::ServerType)
+        ));
+    }
+
+    #[test]
+    fn unknown_command() {
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
+
+        let as_request = SimControllerCommand::RequestFileList(21);
+
+        // Test that it doesn't panic with a Browser command
+        chat_client.handle_sim_controller_packets(Ok(as_request));
+        
+        assert!(true);
     }
 }

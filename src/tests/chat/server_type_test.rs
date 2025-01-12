@@ -71,4 +71,35 @@ pub mod server_type_test {
 
         assert!(chat_client.get_client_list().contains_key(&21));
     }
+
+    #[test]
+    fn different_server_type_response() {
+        let (
+            mut chat_client,
+            _neighbor,
+            _controller_channel_commands,
+            _controller_channel_messages,
+        ) = util::build_client();
+
+        let server_type_response =
+            ChatResponseWrapper::ServerType(ServerTypeResponse::ServerType(ServerType::Text));
+
+        let serialized_message = serde_json::to_string(&server_type_response).unwrap();
+
+        let fragments =
+            Disassembler::new().disassemble_message(serialized_message.as_bytes().to_vec(), 0);
+
+        let packet = Packet {
+            pack_type: PacketType::MsgFragment(fragments.get(0).unwrap().clone()),
+            routing_header: SourceRoutingHeader {
+                hops: vec![21, 2, 1],
+                hop_index: 1,
+            },
+            session_id: 0,
+        };
+
+        chat_client.on_drone_packet_received(Ok(packet));
+
+        assert!(!chat_client.get_client_list().contains_key(&21));
+    }
 }

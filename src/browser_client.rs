@@ -421,8 +421,8 @@ impl BrowserClient {
         &self.obtained_text_files
     }
 
-    pub fn get_obtained_media_files(&self) -> &HashMap<u8, Vec<u8>> {
-        &self.obtained_media_files
+    pub fn get_obtained_media_files(&mut self) -> &mut HashMap<u8, Vec<u8>> {
+        &mut self.obtained_media_files
     }
 
     pub fn get_available_servers(&self) -> &HashMap<NodeId, ServerType> {
