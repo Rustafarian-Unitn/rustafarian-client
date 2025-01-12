@@ -394,7 +394,7 @@ pub trait Client: Send {
         self.logger().log("Client running", LogLevel::INFO);
         *self.running() = true;
         let mut is_first_flood = true; // Whether it needs to send the first flood request
-        let initial_ticks = ticks; // The starting ticks
+        let mut current_tick = 0;
         let timeout_to_flood = rand::thread_rng().gen_range(0..1000); // How long to wait for the flood to start
                                                                       // Run the client for a certain number of ticks
         while ticks > 0 {
@@ -408,7 +408,8 @@ pub trait Client: Send {
                 }
             }
             ticks -= 1;
-            if is_first_flood && initial_ticks - ticks > timeout_to_flood {
+            current_tick += 1;
+            if is_first_flood && current_tick > timeout_to_flood {
                 // Send flood request on start, as the topology only contains the neighbors
                 self.send_flood_request();
                 is_first_flood = false;
