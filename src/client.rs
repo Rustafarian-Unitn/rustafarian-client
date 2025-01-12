@@ -129,7 +129,7 @@ pub trait Client: Send {
 
             if NodeType::Server == node.1 && self.topology().get_node_type(node.0).is_none() {
                 self.topology().set_node_type(node.0, "server".to_string());
-                // self.send_server_type_request(node.0);
+                self.send_server_type_request(node.0);
             }
         }
 
@@ -430,7 +430,7 @@ pub trait Client: Send {
     /// Send a packet to a server
     fn send_packet(&mut self, message: Packet, destination_id: u8) {
         self.logger().log(
-            &format!("Sending packet {:?} to server {}", message, destination_id),
+            &format!("Sending packet {message:?} to server {destination_id}"),
             LogLevel::DEBUG,
         );
         let planned_route = message.routing_header.hops.clone();
@@ -440,8 +440,7 @@ pub trait Client: Send {
             let topology = self.topology().clone();
             self.logger().log(
                 &format!(
-                    "No path to destination ({}) for packet: {:?}, current topology: {:?}",
-                    destination_id, message, topology
+                    "No path to destination ({destination_id}) for packet: {message:?}, current topology: {topology:?}",
                 ),
                 LogLevel::DEBUG,
             );
@@ -543,7 +542,7 @@ pub trait Client: Send {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or(std::time::Duration::from_secs(0))
             .as_millis();
-        let timeout = rustafarian_shared::TIMEOUT_BETWEEN_FLOODS_MS as u128;
+        let timeout = u128::from(rustafarian_shared::TIMEOUT_BETWEEN_FLOODS_MS);
         // Return if the flood was started less than 500 ms ago
         if *self.last_flood_timestamp() + timeout > now {
             return;
