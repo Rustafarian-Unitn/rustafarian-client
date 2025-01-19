@@ -50,9 +50,10 @@ The arguments are:
 ## Testing
 
 Rigorous unit testing was executed to ensure that the client worked correctly. All the tests are located in the `./src/tests`, and are divided between chat and browser.
+The integration testing was done in the `rustafarian-controller` repository.
 
-According to the tool [Tarpaulin](https://github.com/xd009642/tarpaulin) (`./tarpaulin-report.html`), at the time of writing (02/01/2025), the unit test coverage is as follows:
+According to the tool [Tarpaulin](https://github.com/xd009642/tarpaulin) at the time of writing (19/01/2025), the unit test coverage is as follows:
 
-- `src/client.rs`: 196/222 (88.29%)
-- `src/browser_client.rs`: 158/168 (94.05%)
-- `src/chat_client.rs`: 152/154 (98.70%)
+- `src/client.rs`: 229/308 (74.35%) 
+- `src/browser_client.rs`: 259/293 (88.40%) 
+- `src/chat_client.rs`: 184/189 (97.35%) 
