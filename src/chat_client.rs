@@ -1,5 +1,6 @@
 use core::str;
 use std::collections::HashMap;
+use std::process;
 
 use crate::client::Client;
 use rustafarian_shared::assembler::{assembler::Assembler, disassembler::Disassembler};
@@ -370,6 +371,11 @@ impl Client for ChatClient {
                     LogLevel::DEBUG,
                 );
                 self.send_server_type_request(server_id);
+            }
+            // The simulation controller wants the client to shut down
+            SimControllerCommand::Shutdown => {
+                self.logger.log("COMMAND: Shutting down", LogLevel::DEBUG);
+                process::exit(0);
             }
             _ => {}
         }
