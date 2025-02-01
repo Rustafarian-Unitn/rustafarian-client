@@ -566,8 +566,8 @@ impl Client for BrowserClient {
                     &format!("COMMAND: Removing sender {sender_id}"),
                     LogLevel::DEBUG,
                 );
-                self.senders.remove(&sender_id);
                 self.topology.remove_edges(self.client_id, sender_id);
+                self.senders.remove(&sender_id);
             }
             // If the command wants the servers known by the client, send the known servers
             SimControllerCommand::KnownServers => {

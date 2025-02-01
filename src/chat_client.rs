@@ -362,8 +362,8 @@ impl Client for ChatClient {
                     &format!("COMMAND: Removing sender {sender_id}"),
                     LogLevel::DEBUG,
                 );
-                self.senders.remove(&sender_id);
                 self.topology.remove_edges(self.client_id, sender_id);
+                self.senders.remove(&sender_id);
             }
             SimControllerCommand::RequestServerType(server_id) => {
                 self.logger.log(
