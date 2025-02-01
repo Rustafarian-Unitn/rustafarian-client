@@ -139,6 +139,12 @@ pub trait Client: Send {
             .send(SimControllerResponseWrapper::Message(
                 SimControllerMessage::FloodResponse(flood_response.flood_id),
             ));
+        
+        let topology = self.topology().clone();
+        self.logger().log(
+            &format!("Updated topology: {topology:?}"),
+            LogLevel::DEBUG,
+        );
 
         // Send all the packets that couldn't be sent before
         let packets_to_send = self.packets_to_send().clone();
@@ -153,6 +159,11 @@ pub trait Client: Send {
                 .get_routing_header(client_id, destination_id);
             self.send_packet(new_packet, destination_id);
         }
+
+        self.logger().log(
+            "Sent all packets that couldn't be sent before",
+            LogLevel::DEBUG,
+        );
     }
 
     /// When a fragment is received from a Drone
