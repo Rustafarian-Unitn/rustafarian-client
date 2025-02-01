@@ -200,6 +200,13 @@ pub trait Client: Send {
         }
         // If the NACK is due to an error in routing (the node crashed), remove the node from the topology
         if let NackType::ErrorInRouting(error_id) = nack.nack_type {
+            self.logger().log(
+                &format!(
+                    "The node {} has crashed, removing it from the topology",
+                    error_id
+                ),
+                LogLevel::DEBUG,
+            );
             self.topology().remove_node(error_id);
         }
         // Resend the packet
